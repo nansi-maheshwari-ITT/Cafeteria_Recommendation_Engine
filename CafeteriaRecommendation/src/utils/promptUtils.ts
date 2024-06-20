@@ -20,7 +20,8 @@ export function promptUser(role: 'admin' | 'chef' | 'employee') {
   } else if (role === 'chef') {
     console.log('1. Recommend Menu for Next Day');
     console.log('2. View Monthly Feedback Report');
-    console.log('3. Exit');
+    console.log('3. View Feedback');
+    console.log('4. Exit');
   } else if (role === 'employee') {
     console.log('1. View Menu');
     console.log('2. Give Feedback');

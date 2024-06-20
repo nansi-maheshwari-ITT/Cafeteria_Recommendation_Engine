@@ -19,3 +19,13 @@ export async function viewMonthlyFeedback(callback: Function) {
     callback({ success: false });
   }
 }
+
+export async function viewFeedback(itemId: number, callback: Function) {
+  try {
+    const feedback = await menuRepository.viewFeedback(itemId);
+    callback({ success: true, feedback });
+  } catch (err) {
+    console.error('Error fetching feedback:', err);
+    callback({ success: false });
+  }
+}

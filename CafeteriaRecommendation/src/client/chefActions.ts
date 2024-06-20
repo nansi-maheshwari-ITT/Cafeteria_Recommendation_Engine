@@ -19,7 +19,27 @@ export function handleChefChoice(choice: string) {
         promptUser('chef');
       });
       break;
-    case '3':
+      case '3':
+        rl.question("Enter item ID to view feedback: ", (id) => {
+          const itemId = parseInt(id);
+          socket.emit("checkFoodItemExistence", itemId, (exists: boolean) => {
+            if (exists) {
+              socket.emit('viewFeedback', itemId, (response: any) => {
+                if (response.success) {
+                  console.table(response.feedback);
+                } else {
+                  console.log("Failed to fetch feedback or no feedback available.");
+                }
+                promptUser('chef');
+              });
+            } else {
+              console.log(`Menu item with ID ${itemId} does not exist.`);
+              promptUser('chef');
+            }
+          });
+        });
+        break;
+    case '4':
       rl.close();
       socket.close();
       console.log('Goodbye!');

@@ -2,31 +2,40 @@ import connection from "../utils/database";
 import { MenuItem, MenuItemPayload } from "../utils/types";
 
 class MenuRepository {
-    async findMenuItemByName(name: string): Promise<MenuItem | null> {
-        const [rows] = await connection.query<MenuItem[]>("SELECT * FROM menu_item WHERE name = ?", [name]);
-        return rows.length > 0 ? rows[0] : null;
-      }
-  async addMenuItem({ name, price,mealType, availability }: MenuItemPayload) {
-    console.log( name, price,mealType, availability)
+  async findMenuItemByName(name: string): Promise<MenuItem | null> {
+    const [rows] = await connection.query<MenuItem[]>(
+      "SELECT * FROM menu_item WHERE name = ?",
+      [name]
+    );
+    return rows.length > 0 ? rows[0] : null;
+  }
+  async addMenuItem({ name, price, mealType, availability }: MenuItemPayload) {
+    console.log(name, price, mealType, availability);
     const existingItem = await this.findMenuItemByName(name);
     if (existingItem) {
       throw new Error(`Menu item '${name}' already exists.`);
     }
     const [results] = await connection.query(
       "INSERT INTO menu_item (name, price,mealType, availability) VALUES (?, ?, ?,?)",
-      [name, price,mealType, availability]
+      [name, price, mealType, availability]
     );
     return (results as any).insertId;
   }
 
-  async updateMenuItem({ id, name, price,mealType, availability }: MenuItemPayload) {
+  async updateMenuItem({
+    id,
+    name,
+    price,
+    mealType,
+    availability,
+  }: MenuItemPayload) {
     const existingItem = await this.findMenuItemByName(name);
     if (existingItem) {
       throw new Error(`Menu item '${name}' already exists.`);
     }
     await connection.query(
       "UPDATE menu_item SET name = ?, price = ?,mealType=?, availability = ? WHERE id = ?",
-      [name, price,mealType, availability, id]
+      [name, price, mealType, availability, id]
     );
   }
 
@@ -67,6 +76,18 @@ class MenuRepository {
       WHERE feedback_date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
       GROUP BY menu_item.name
     `);
+    return rows;
+  }
+
+  async viewFeedback(itemId: number) {
+    const [rows] = await connection.query(
+      `
+      SELECT feedback.comment, feedback.rating, feedback.feedback_date
+      FROM feedback
+      WHERE feedback.menu_item_id = ?
+    `,
+      [itemId]
+    );
     return rows;
   }
 }
