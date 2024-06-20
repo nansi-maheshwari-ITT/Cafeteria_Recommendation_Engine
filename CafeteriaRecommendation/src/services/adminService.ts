@@ -2,20 +2,29 @@ import { Request, Response } from 'express';
 import { menuRepository } from '../repositories/menuRepository';
 import { MenuItemPayload } from '../utils/types';
 
-export async function addMenuItem({ name, price,mealType, availability }: MenuItemPayload, callback: Function) {
+export async function addMenuItem({ name, price, mealType, availability }: MenuItemPayload, callback: Function) {
   try {
-    const menuItemId = await menuRepository.addMenuItem({ name, price,mealType, availability });
-    callback({ success: true, menuItemId });
+      const response = await menuRepository.addMenuItem({ name, price, mealType, availability });
+
+      if (response.success) {
+          callback({ success: true, menuItemId: response.menuItemId });
+      } else {
+          callback({ success: false, message: response.message });
+      }
   } catch (err) {
-    console.error('Error adding menu item:', err);
-    callback({ success: false });
+      console.error('Error adding menu item:', err);
+      callback({ success: false, message: 'Unexpected error occurred.' });
   }
 }
 
 export async function updateMenuItem({ id, name, price,mealType, availability }: MenuItemPayload, callback: Function) {
   try {
-    await menuRepository.updateMenuItem({ id, name, price,mealType, availability });
-    callback({ success: true });
+    const response = await menuRepository.addMenuItem({ name, price, mealType, availability });
+    if (response.success) {
+      callback({ success: true, menuItemId: response.menuItemId });
+  } else {
+      callback({ success: false, message: response.message });
+  }
   } catch (err) {
     console.error('Error updating menu item:', err);
     callback({ success: false });

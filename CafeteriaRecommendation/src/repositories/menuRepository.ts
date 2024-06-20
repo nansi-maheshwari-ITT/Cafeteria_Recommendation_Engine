@@ -10,18 +10,22 @@ class MenuRepository {
     return rows.length > 0 ? rows[0] : null;
   }
   async addMenuItem({ name, price, mealType, availability }: MenuItemPayload) {
-    console.log(name, price, mealType, availability);
     const existingItem = await this.findMenuItemByName(name);
     if (existingItem) {
-      throw new Error(`Menu item '${name}' already exists.`);
+      // Return a custom error response
+      return { success: false, message: `Menu item '${name}' already exists.` };
     }
-    const [results] = await connection.query(
-      "INSERT INTO menu_item (name, price,mealType, availability) VALUES (?, ?, ?,?)",
-      [name, price, mealType, availability]
-    );
-    return (results as any).insertId;
+    try {
+      const [results] = await connection.query(
+        "INSERT INTO menu_item (name, price, mealType, availability) VALUES (?, ?, ?, ?)",
+        [name, price, mealType, availability]
+      );
+      return { success: true, menuItemId: (results as any).insertId };
+    } catch (err) {
+      console.error("Error adding menu item:", err);
+      return { success: false, message: "Error adding menu item." };
+    }
   }
-
   async updateMenuItem({
     id,
     name,
@@ -92,12 +96,17 @@ class MenuRepository {
   }
 
   async setNextDayMenu(itemIds: number[]) {
-    await connection.query('UPDATE menu_item SET next_day_menu = FALSE');
-    await connection.query('UPDATE menu_item SET next_day_menu = TRUE WHERE id IN (?)', [itemIds]);
+    await connection.query("UPDATE menu_item SET next_day_menu = FALSE");
+    await connection.query(
+      "UPDATE menu_item SET next_day_menu = TRUE WHERE id IN (?)",
+      [itemIds]
+    );
   }
- 
+
   async getNextDayMenuItems() {
-    const [rows] = await connection.query('SELECT * FROM menu_item WHERE next_day_menu = TRUE');
+    const [rows] = await connection.query(
+      "SELECT * FROM menu_item WHERE next_day_menu = TRUE"
+    );
     return rows;
   }
 }

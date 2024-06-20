@@ -12,10 +12,7 @@ export function handleChefActions(socket: Socket) {
     callback({ success: true, recommendedItems });
   });
   socket.on('selectNextDayMenu', async (itemIds: number[], callback: Function) => {
-    console.log('itemIds', itemIds);
-    console.log("i am here");
     const result = await selectNextDayMenu(itemIds);
-    console.log('result', result);
     if (result.success) {
       socket.broadcast.emit('nextDayMenu', result.nextDayMenuItems);
     }
