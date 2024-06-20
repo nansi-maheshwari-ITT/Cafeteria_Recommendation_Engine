@@ -1,4 +1,5 @@
 import { menuRepository } from '../repositories/menuRepository';
+import { getFoodItemForNextDay as recommendationEngineGetFoodItemForNextDay } from '../utils/recommendationEngine';
 
 export async function recommendMenu(itemIds: number[], callback: Function) {
   try {
@@ -29,3 +30,26 @@ export async function viewFeedback(itemId: number, callback: Function) {
     callback({ success: false });
   }
 }
+
+export async function getFoodItemForNextDay(menuType: string, returnItemListSize: number) {
+  try {
+    const recommendedItems = await recommendationEngineGetFoodItemForNextDay(menuType, returnItemListSize);
+    return recommendedItems;
+  } catch (err) {
+    console.error('Error getting food item for next day:', err);
+    throw err;
+  }
+}
+ 
+export async function selectNextDayMenu(itemIds: number[]) {
+  try {
+    await menuRepository.setNextDayMenu(itemIds);
+    const nextDayMenuItems = await menuRepository.getNextDayMenuItems();
+    console.log('nextDayMenuItems', nextDayMenuItems);
+    return { success: true, nextDayMenuItems };
+  } catch (err) {
+    console.error('Error selecting next day menu items:', err);
+    return { success: false, message: 'Error selecting next day menu items.' };
+  }
+}
+ 

@@ -90,6 +90,16 @@ class MenuRepository {
     );
     return rows;
   }
+
+  async setNextDayMenu(itemIds: number[]) {
+    await connection.query('UPDATE menu_item SET next_day_menu = FALSE');
+    await connection.query('UPDATE menu_item SET next_day_menu = TRUE WHERE id IN (?)', [itemIds]);
+  }
+ 
+  async getNextDayMenuItems() {
+    const [rows] = await connection.query('SELECT * FROM menu_item WHERE next_day_menu = TRUE');
+    return rows;
+  }
 }
 
 export const menuRepository = new MenuRepository();

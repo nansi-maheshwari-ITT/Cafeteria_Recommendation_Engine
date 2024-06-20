@@ -5,11 +5,19 @@ import { socket } from './client';
 export function handleChefChoice(choice: string) {
   switch (choice) {
     case '1':
-      rl.question('Enter items to recommend (comma-separated IDs): ', (items) => {
-        const itemIds = items.split(',').map(id => parseInt(id.trim()));
-        socket.emit('recommendMenu', itemIds, (response: any) => {
-          console.log(response);
-          promptUser('chef');
+      rl.question('Enter menu type: ', (menuType) => {
+        rl.question('Enter the number of items to return: ', (size) => {
+          socket.emit('getFoodItemForNextDay', { menuType, returnItemListSize: parseInt(size) }, (response: any) => {
+            console.log('Recommended Items:', response.recommendedItems);
+            rl.question('Enter item IDs to select for next day (comma-separated): ', (selectedIds) => {
+              const itemIds = selectedIds.split(',').map(id => parseInt(id.trim()));
+              console.log('Selected item IDs: nitin', itemIds);
+              socket.emit('selectNextDayMenu', itemIds, (res: any) => {
+                console.log(res.message);
+                promptUser('chef');
+              });
+            });
+          });
         });
       });
       break;
