@@ -7,6 +7,7 @@ export function handleAdminChoice(choice: string) {
     case "1":
       rl.question("Enter item name: ", (name) => {
         rl.question("Enter item price: ", (price) => {
+            rl.question("Enter meal type: ", (mealType) => {
           rl.question(
             "Is the item available (true/false): ",
             (availability) => {
@@ -15,6 +16,7 @@ export function handleAdminChoice(choice: string) {
                 {
                   name,
                   price: parseFloat(price),
+                  mealType:mealType,
                   availability: availability === "true",
                 },
                 (response: any) => {
@@ -25,22 +27,35 @@ export function handleAdminChoice(choice: string) {
             }
           );
         });
+    });
       });
       break;
-    case "2":
-      rl.question("Enter item ID to update: ", (id) => {
+      case "2":
+  rl.question("Enter item ID to update: ", (id) => {
+    const itemId = parseInt(id);
+
+    // Emit checkFoodItemExistence event to check if the item exists
+    socket.emit("checkFoodItemExistence", itemId, (exists: boolean) => {
+      if (exists) {
+        // Item exists, prompt for new item details
         rl.question("Enter new item name: ", (name) => {
           rl.question("Enter new item price: ", (price) => {
+            rl.question("Enter meal type: ", (mealType) => {
             rl.question(
               "Is the item available (true/false): ",
               (availability) => {
+                // Convert availability string to boolean
+                const isAvailable = availability === "true";
+
+                // Once all information is gathered, emit updateMenuItem event
                 socket.emit(
                   "updateMenuItem",
                   {
-                    id: parseInt(id),
+                    id: itemId,
                     name,
                     price: parseFloat(price),
-                    availability: availability === "true",
+                    mealType:mealType,
+                    availability: isAvailable,
                   },
                   (response: any) => {
                     console.log(response);
@@ -51,8 +66,15 @@ export function handleAdminChoice(choice: string) {
             );
           });
         });
-      });
-      break;
+        });
+      } else {
+        // Item does not exist, notify and prompt for valid ID
+        console.log(`Menu item with ID ${itemId} does not exist.`);
+        promptUser("admin");
+      }
+    });
+  });
+  break;
     case "3":
       rl.question("Enter item ID to delete: ", (id) => {
         socket.emit("deleteMenuItem", parseInt(id), (response: any) => {
@@ -64,12 +86,15 @@ export function handleAdminChoice(choice: string) {
     case "4":
       socket.emit("viewMenu", (response: any) => {
         if (response.success) {
-          const formattedMenuItems = response.menuItems.map((item: MenuItem) => ({
-            id: item.id,
-            name: item.name,
-            price: item.price,
-            availability: item.availability ? "available" : "not available",
-          }));
+          const formattedMenuItems = response.menuItems.map(
+            (item: MenuItem) => ({
+              id: item.id,
+              name: item.name,
+              price: item.price,
+              mealType:item.mealType,
+              availability: item.availability ? "available" : "not available",
+            })
+          );
 
           console.table(formattedMenuItems);
         } else {

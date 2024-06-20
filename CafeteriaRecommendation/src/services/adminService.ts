@@ -2,9 +2,9 @@ import { Request, Response } from 'express';
 import { menuRepository } from '../repositories/menuRepository';
 import { MenuItemPayload } from '../utils/types';
 
-export async function addMenuItem({ name, price, availability }: MenuItemPayload, callback: Function) {
+export async function addMenuItem({ name, price,mealType, availability }: MenuItemPayload, callback: Function) {
   try {
-    const menuItemId = await menuRepository.addMenuItem({ name, price, availability });
+    const menuItemId = await menuRepository.addMenuItem({ name, price,mealType, availability });
     callback({ success: true, menuItemId });
   } catch (err) {
     console.error('Error adding menu item:', err);
@@ -12,9 +12,9 @@ export async function addMenuItem({ name, price, availability }: MenuItemPayload
   }
 }
 
-export async function updateMenuItem({ id, name, price, availability }: MenuItemPayload, callback: Function) {
+export async function updateMenuItem({ id, name, price,mealType, availability }: MenuItemPayload, callback: Function) {
   try {
-    await menuRepository.updateMenuItem({ id, name, price, availability });
+    await menuRepository.updateMenuItem({ id, name, price,mealType, availability });
     callback({ success: true });
   } catch (err) {
     console.error('Error updating menu item:', err);
@@ -46,5 +46,15 @@ export async function viewMenu(callback: Function) {
     callback({ success: false });
   }
 }
+
+export async function checkFoodItemExistence(id: number): Promise<boolean> {
+    try {
+      const existingItem = await menuRepository.findMenuItemById(id);
+      return !!existingItem;
+    } catch (err) {
+      console.error('Error checking menu item existence:', err);
+      return false;
+    }
+  }
 
 

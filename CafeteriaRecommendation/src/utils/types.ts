@@ -16,6 +16,7 @@ export interface User {
     id?: number;
     name: string;
     price: number;
+    mealType:string;
     availability: boolean;
   }
   

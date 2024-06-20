@@ -11,7 +11,7 @@ interface User extends RowDataPacket {
 
 class UserRepository {
   async login(employeeId: string, name: string): Promise<User | null> {
-    const [rows] = await connection.query<User[]>('SELECT * FROM users WHERE employeeId = ? AND name = ?', [employeeId, name]);
+    const [rows] = await connection.query<User[]>('SELECT * FROM user WHERE employeeId = ? AND name = ?', [employeeId, name]);
     return rows.length > 0 ? rows[0] : null;
   }
 }
