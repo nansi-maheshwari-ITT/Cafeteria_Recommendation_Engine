@@ -12,7 +12,6 @@ class MenuRepository {
   async addMenuItem({ name, price, mealType, availability }: MenuItemPayload) {
     const existingItem = await this.findMenuItemByName(name);
     if (existingItem) {
-      // Return a custom error response
       return { success: false, message: `Menu item '${name}' already exists.` };
     }
     try {
@@ -26,22 +25,34 @@ class MenuRepository {
       return { success: false, message: "Error adding menu item." };
     }
   }
-  async updateMenuItem({
-    id,
-    name,
-    price,
-    mealType,
-    availability,
-  }: MenuItemPayload) {
-    const existingItem = await this.findMenuItemByName(name);
-    if (existingItem) {
-      throw new Error(`Menu item '${name}' already exists.`);
-    }
-    await connection.query(
-      "UPDATE menu_item SET name = ?, price = ?,mealType=?, availability = ? WHERE id = ?",
-      [name, price, mealType, availability, id]
+  async updateMenuItem({ id, name, price, mealType, availability }: MenuItemPayload) {
+    // Check if there is another item with the same name
+    const existingItem = await connection.query(
+      "SELECT id FROM menu_item WHERE name = ? AND id != ?",
+      [name, id]
     );
+  
+    if (existingItem.length > 0) {
+      return { success: false, message: `Menu item '${name}' already exists.` };
+    }
+  
+    try {
+      const [results] = await connection.query(
+        "UPDATE menu_item SET name = ?, price = ?, mealType = ?, availability = ? WHERE id = ?",
+        [name, price, mealType, availability, id]
+      );
+  
+      if ((results as any).affectedRows > 0) {
+        return { success: true, menuItemId: id };
+      } else {
+        return { success: false, message: 'Item not found or no changes made.' };
+      }
+    } catch (err) {
+      console.error("Error updating menu item:", err);
+      return { success: false, message: "Error updating menu item." };
+    }
   }
+  
 
   async findMenuItemById(id: number): Promise<MenuItem | null> {
     const [rows] = await connection.query<MenuItem[]>(

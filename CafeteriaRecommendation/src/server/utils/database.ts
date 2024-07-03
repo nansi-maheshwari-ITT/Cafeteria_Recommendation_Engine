@@ -4,7 +4,7 @@ const connection = mysql.createPool({
   host: 'localhost',
   user: 'root',
   password: 'Myself@1203',
-  database: 'food_recommendation_engine'
+  database: 'food_recommendation'
 });
 
 export default connection;

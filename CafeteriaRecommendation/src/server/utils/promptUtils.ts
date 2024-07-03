@@ -32,10 +32,10 @@ export function promptUser(role: 'admin' | 'chef' | 'employee') {
     console.log('2. View Monthly Feedback Report');
     console.log('3. View Feedback For particular item');
     console.log('4. View recommended food items');
-    console.log('6. Rollout menu options for tomorrow');
-    console.log("7. Check responses for today's meals");
-    console.log("8. Finalize menu");
-    console.log('9. Exit');
+    console.log('5. Rollout menu options for tomorrow');
+    console.log("6. Check responses for today's meals");
+    console.log("7. Finalize menu");
+    console.log('8. Exit');
   } else if (role === 'employee') {
     console.log('1. View Menu');
     console.log('2. Give Feedback');
