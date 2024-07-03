@@ -1,5 +1,5 @@
-import { promptUser, rl } from "../utils/promptUtils";
-import { MenuItem } from "../utils/types";
+import { promptUser, rl } from "../server/utils/promptUtils";
+import { MenuItem } from "../server/utils/types";
 import { socket } from "./client";
 
 export function handleAdminChoice(choice: string) {
@@ -34,8 +34,8 @@ export function handleAdminChoice(choice: string) {
   rl.question("Enter item ID to update: ", (id) => {
     const itemId = parseInt(id);
 
-    // Emit checkFoodItemExistence event to check if the item exists
-    socket.emit("checkFoodItemExistence", itemId, (exists: boolean) => {
+    // Emit checkIfItemExists event to check if the item exists
+    socket.emit("checkIfItemExists", itemId, (exists: boolean) => {
       if (exists) {
         // Item exists, prompt for new item details
         rl.question("Enter new item name: ", (name) => {

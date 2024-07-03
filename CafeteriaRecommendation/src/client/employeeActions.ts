@@ -1,6 +1,6 @@
 import { socket } from "./client";
-import { promptUser, rl } from "../utils/promptUtils";
-import { MenuItem } from "../utils/types";
+import { promptUser, rl } from "../server/utils/promptUtils";
+import { MenuItem } from "../server/utils/types";
 
 export function handleEmployeeChoice(choice: string) {
   switch (choice) {
@@ -21,7 +21,7 @@ export function handleEmployeeChoice(choice: string) {
       rl.question("Enter item ID to give feedback on: ", (itemId) => {
         const id = parseInt(itemId);
 
-        socket.emit("checkFoodItemExistence", id, (exists: boolean) => {
+        socket.emit("checkIfItemExists", id, (exists: boolean) => {
           if (exists) {
             rl.question("Enter your comment: ", (comment) => {
               rl.question("Enter your rating (1-5): ", (rating) => {

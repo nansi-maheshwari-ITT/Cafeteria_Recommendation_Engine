@@ -21,9 +21,9 @@ export async function viewMonthlyFeedback(callback: Function) {
   }
 }
 
-export async function viewFeedback(itemId: number, callback: Function) {
+export async function getFeedbackById(itemId: number, callback: Function) {
   try {
-    const feedback = await menuRepository.viewFeedback(itemId);
+    const feedback = await menuRepository.getFeedbackById(itemId);
     callback({ success: true, feedback });
   } catch (err) {
     console.error('Error fetching feedback:', err);

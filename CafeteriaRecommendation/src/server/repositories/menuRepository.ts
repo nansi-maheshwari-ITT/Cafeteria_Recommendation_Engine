@@ -83,7 +83,7 @@ class MenuRepository {
     return rows;
   }
 
-  async viewFeedback(itemId: number) {
+  async getFeedbackById(itemId: number) {
     const [rows] = await connection.query(
       `
       SELECT feedback.comment, feedback.rating, feedback.feedback_date

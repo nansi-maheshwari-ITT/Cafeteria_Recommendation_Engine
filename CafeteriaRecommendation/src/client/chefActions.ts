@@ -1,60 +1,109 @@
 
-import { promptUser, rl } from '../utils/promptUtils';
-import { socket } from './client';
+import { askQuestionAsync, promptUser, rl } from "../server/utils/promptUtils";
+import { loggedInUser, socket } from "./client";
 
-export function handleChefChoice(choice: string) {
-  switch (choice) {
-    case '1':
-      rl.question('Enter menu type: ', (menuType) => {
-        rl.question('Enter the number of items to return: ', (size) => {
-          socket.emit('getFoodItemForNextDay', { menuType, returnItemListSize: parseInt(size) }, (response: any) => {
-            console.log('Recommended Items:', response.recommendedItems);
-            rl.question('Enter item IDs to select for next day (comma-separated): ', (selectedIds) => {
-              const itemIds = selectedIds.split(',').map(id => parseInt(id.trim()));
-              console.log('Selected item IDs: nitin', itemIds);
-              socket.emit('selectNextDayMenu', itemIds, (res: any) => {
-                console.log(res.message);
-                promptUser('chef');
-              });
-            });
-          });
-        });
-      });
-      break;
-    case '2':
-      socket.emit('viewMonthlyFeedback', (response: any) => {
-        console.log(response);
-        promptUser('chef');
-      });
-      break;
-      case '3':
-        rl.question("Enter item ID to view feedback: ", (id) => {
-          const itemId = parseInt(id);
-          socket.emit("checkFoodItemExistence", itemId, (exists: boolean) => {
-            if (exists) {
-              socket.emit('viewFeedback', itemId, (response: any) => {
-                if (response.success) {
-                  console.table(response.feedback);
-                } else {
-                  console.log("Failed to fetch feedback or no feedback available.");
-                }
-                promptUser('chef');
-              });
-            } else {
-              console.log(`Menu item with ID ${itemId} does not exist.`);
-              promptUser('chef');
-            }
-          });
-        });
+export async function handleChefChoice(choice: string) {
+  try {
+    switch (choice) {
+      case "1":
+        await viewMenu();
         break;
-    case '4':
-      rl.close();
-      socket.close();
-      console.log('Goodbye!');
-      break;
-    default:
-      console.log('Invalid choice, please try again.');
-      promptUser('chef');
-      break;
+      case "2":
+        await viewMonthlyFeedback();
+        break;
+      case "3":
+        await viewFeedbackForItem();
+        break;
+      case "4":
+        await viewRecommendations();
+        break;
+      case "5":
+        await ViewRecommendedFoodItems();
+        break;
+      case "6":
+        rl.close();
+        socket.close();
+        console.log("Logging out the chef console!");
+        break;
+      default:
+        console.log("Invalid option. Please choose a valid option.");
+        promptUser("chef");
+        break;
+    }
+  } catch (error) {
+    console.error("Error processing chef choice:", error);
   }
 }
+
+function viewMonthlyFeedback() {
+  socket.emit("viewMonthlyFeedback", (response: any) => {
+    console.table(response.feedbackReport);
+    promptUser("chef");
+  });
+}
+
+async function viewFeedbackForItem() {
+  try {
+    const id = await askQuestionAsync("Enter the food item id to view feedback: ");
+    const itemId = parseInt(id);
+    socket.emit("checkIfItemExists", itemId, (exists: boolean) => {
+      if (exists) {
+        socket.emit("getFeedbackById", itemId, (response: any) => {
+          if (response.success) {
+            console.table(response.feedback);
+          } else {
+            console.log("Failed to fetch or no feedback available.");
+          }
+          promptUser("chef");
+        });
+      } else {
+        console.log(`Item with ID ${itemId} does not exist.`);
+        promptUser("chef");
+      }
+    });
+  } catch (error) {
+    console.error("Error viewing feedback:", error);
+  }
+}
+
+function viewRecommendations() {
+  socket.emit("getRecommendation", (response: any) => {
+    console.table(response.menuItems);
+    promptUser("chef");
+  });
+}
+
+function viewMenu() {
+  socket.emit("getMenu", (response: any) => {
+    console.table(response.menuItems);
+    promptUser("chef");
+  });
+}
+
+async function ViewRecommendedFoodItems() {
+  socket.emit("getRecommendedFoodItems", (response: any) => {
+    console.table(response.items);
+    if (loggedInUser) {
+      rolloutFoodItems();
+    } else {
+      console.log("User not logged in.");
+      promptUser("chef");
+    }
+  });
+}
+
+async function rolloutFoodItems() {
+  const mealTimes = ["breakfast", "lunch", "dinner"];
+  for (const mealTime of mealTimes) {
+    console.log(`Please enter three items for ${mealTime}:`);
+    const items: Array<string> = [];
+    for (let i = 0; i < 3; i++) {
+      const item = await askQuestionAsync(`Enter item ${i + 1}: `);
+      items.push(item);
+    }
+    socket.emit("rolloutFoodItem", mealTime, items);
+  }
+  console.log("Items rolled out successfully.\n");
+  promptUser("chef");
+}
+

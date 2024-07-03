@@ -56,7 +56,7 @@ export async function viewMenu(callback: Function) {
   }
 }
 
-export async function checkFoodItemExistence(id: number): Promise<boolean> {
+export async function checkIfItemExists(id: number): Promise<boolean> {
     try {
       const existingItem = await menuRepository.findMenuItemById(id);
       return !!existingItem;

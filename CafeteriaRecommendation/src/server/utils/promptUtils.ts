@@ -1,12 +1,22 @@
 import readline from 'readline';
-import { handleAdminChoice } from '../client/adminActions';
-import { handleChefChoice } from '../client/chefActions';
-import { handleEmployeeChoice } from '../client/employeeActions';
+import { handleAdminChoice } from '../../client/adminActions';
+import { handleChefChoice } from '../../client/chefActions';
+import { handleEmployeeChoice } from '../../client/employeeActions';
 
 export const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout
 });
+
+export function askQuestion(query: string): Promise<string> {
+  return new Promise((resolve) => rl.question(query, resolve));
+}
+
+export function askQuestionAsync(question: string): Promise<string> {
+  return new Promise((resolve) => {
+    rl.question(question, (answer) => resolve(answer));
+  });
+}
 
 export function promptUser(role: 'admin' | 'chef' | 'employee') {
   console.log('\nChoose an operation:');
@@ -18,14 +28,20 @@ export function promptUser(role: 'admin' | 'chef' | 'employee') {
     console.log('5. Generate monthly feedback report');
     console.log('6. Exit');
   } else if (role === 'chef') {
-    console.log('1. Recommend Menu for Next Day');
+    console.log('1. View Menu');
     console.log('2. View Monthly Feedback Report');
-    console.log('3. View Feedback');
-    console.log('4. Exit');
+    console.log('3. View Feedback For particular item');
+    console.log('4. View recommended food items');
+    console.log('6. Rollout menu options for tomorrow');
+    console.log("7. Check responses for today's meals");
+    console.log("8. Finalize menu");
+    console.log('9. Exit');
   } else if (role === 'employee') {
     console.log('1. View Menu');
     console.log('2. Give Feedback');
-    console.log('3. Exit');
+    console.log('3. View Notification'  );
+    console.log('4. Give vote for tomorrow menu');
+    console.log('5. Exit');
   }
   
   rl.question('Enter your choice: ', (choice) => {
