@@ -2,8 +2,8 @@ import { askQuestion, promptUser, rl } from "../server/utils/promptUtils";
 import { MenuItem } from "../server/utils/types";
 import { socket } from "./client";
 
-export async function handleAdminChoice(selection: string) {
-  switch (selection) {
+export async function handleAdminChoice(choice: string) {
+  switch (choice) {
     case "1":
       await addNewMenuItem();
       break;
@@ -14,7 +14,7 @@ export async function handleAdminChoice(selection: string) {
       await removeMenuItem();
       break;
     case "4":
-      displayMenu();
+      viewMenu();
       break;
     case "5":
       displayMonthlyFeedback();
@@ -25,7 +25,7 @@ export async function handleAdminChoice(selection: string) {
       console.log("Logging out the admin console.");
       break;
     default:
-      console.log("Invalid selection. Please choose a valid option.");
+      console.log("Invalid choice. Please choose a valid option.");
       promptUser("admin");
       break;
   }
@@ -117,7 +117,7 @@ async function removeMenuItem() {
   }
 }
 
-function displayMenu() {
+function viewMenu() {
   socket.emit("viewMenu", (response: any) => {
     if (response.success) {
       const formattedMenuItems = response.menuItems.map(
@@ -126,7 +126,7 @@ function displayMenu() {
           name: item.name,
           price: item.price,
           mealType: item.mealType,
-          availability: item.availability ? "in stock" : "out of stock",
+          availability: item.availability ? "Available" : "Not available",
         })
       );
       console.table(formattedMenuItems);

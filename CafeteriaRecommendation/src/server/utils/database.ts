@@ -1,10 +1,12 @@
 import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
 
+dotenv.config();
 const connection = mysql.createPool({
-  host: 'localhost',
-  user: 'root',
-  password: 'Myself@1203',
-  database: 'food_recommendation'
+  host:process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME
 });
 
 export default connection;

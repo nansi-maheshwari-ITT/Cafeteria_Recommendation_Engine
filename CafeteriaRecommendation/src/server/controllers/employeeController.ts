@@ -9,6 +9,6 @@ export function handleEmployeeActions(socket: Socket) {
   socket.on('checkIfItemExists', (itemId, callback) => {
     checkIfItemExists(itemId)
       .then((exists: boolean) => callback(exists))
-      .catch(() => callback(false)); // Handle errors, return false for simplicity
+      .catch(() => callback(false)); 
   });
 }
