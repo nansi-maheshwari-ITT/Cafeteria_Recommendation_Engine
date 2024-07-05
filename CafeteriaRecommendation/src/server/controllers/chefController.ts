@@ -1,9 +1,10 @@
 
 import { Socket } from 'socket.io';
-import { recommendMenu, viewMonthlyFeedback, getFeedbackById, selectNextDayMenu } from '../services/chefService';
+import { recommendMenu, viewMonthlyFeedback, getFeedbackById, selectNextDayMenu, getMenu, getRecommendation } from '../services/chefService';
 import { getFoodItemForNextDay } from '../utils/recommendationEngine';
 
 export function handleChefActions(socket: Socket) {
+  socket.on('getMenu', getMenu);
   socket.on('recommendMenu', recommendMenu);
   socket.on('viewMonthlyFeedback', viewMonthlyFeedback);
   socket.on('getFeedbackById', (itemId: number, callback: Function) => getFeedbackById(itemId, callback));
@@ -18,4 +19,5 @@ export function handleChefActions(socket: Socket) {
     }
     callback(result);
   });
+  socket.on('getRecommendation', getRecommendation);
 }

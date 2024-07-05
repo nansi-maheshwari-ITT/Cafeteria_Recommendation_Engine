@@ -1,14 +1,36 @@
-import { Socket } from 'socket.io';
-import { addMenuItem, checkIfItemExists, deleteMenuItem, updateMenuItem, viewMenu } from '../services/adminService';
+import { Socket } from "socket.io";
+import {
+  addMenuItem,
+  updateMenuItem,
+  deleteMenuItem,
+  viewMenu,
+  checkIfItemExists,
+} from "../services/adminService";
 
 export function handleAdminActions(socket: Socket) {
-  socket.on('addMenuItem', (data, callback) => addMenuItem(data, callback));
-  socket.on('updateMenuItem', (data, callback) => updateMenuItem(data, callback));
-  socket.on('deleteMenuItem', (data, callback) => deleteMenuItem(data, callback));
-  socket.on('viewMenu', (callback) => viewMenu(callback));
-  socket.on('checkIfItemExists', (itemId, callback) => {
-    checkIfItemExists(itemId)
-      .then((exists: boolean) => callback(exists))
-      .catch(() => callback(false)); // Handle errors, return false for simplicity
+  socket.on("addMenuItem", (data, callback) => {
+    addMenuItem(data, callback);
+  });
+
+  socket.on("updateMenuItem", (data, callback) => {
+    updateMenuItem(data, callback);
+  });
+
+  socket.on("deleteMenuItem", (data, callback) => {
+    deleteMenuItem(data, callback);
+  });
+
+  socket.on("viewMenu", (callback) => {
+    viewMenu(callback);
+  });
+
+  socket.on("checkIfItemExists", async (itemId, callback) => {
+    try {
+      const exists = await checkIfItemExists(itemId);
+      callback(exists);
+    } catch (error) {
+      console.error("Error checking if item exists:", error);
+      callback(false);
+    }
   });
 }

@@ -1,5 +1,17 @@
 import { menuRepository } from '../repositories/menuRepository';
 import { getFoodItemForNextDay as recommendationEngineGetFoodItemForNextDay } from '../utils/recommendationEngine';
+import { calculateSentiments } from './recommendationService';
+
+export async function getMenu(callback: Function) {
+  try{
+    await calculateSentiments();
+    const menuItems = await menuRepository.getMenu();
+    callback({ success: true, menuItems });
+  }catch(err){
+    console.error('Error getting menu:', err);
+    callback({ success: false });
+  }
+}
 
 export async function recommendMenu(itemIds: number[], callback: Function) {
   try {
@@ -7,6 +19,17 @@ export async function recommendMenu(itemIds: number[], callback: Function) {
     callback({ success: true, recommendedItems });
   } catch (err) {
     console.error('Error recommending menu:', err);
+    callback({ success: false });
+  }
+}
+
+export async function getRecommendation(callback: Function) {
+  try {
+    await calculateSentiments();
+    const menuItems = await menuRepository.getRecommendations();
+    callback({ success: true, menuItems });
+  } catch (err) {
+    console.error('Error getting recommendation:', err);
     callback({ success: false });
   }
 }
