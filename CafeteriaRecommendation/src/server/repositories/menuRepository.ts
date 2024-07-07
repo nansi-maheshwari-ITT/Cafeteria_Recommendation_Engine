@@ -1,3 +1,4 @@
+import { RowDataPacket } from "mysql2";
 import connection from "../utils/database";
 import { MenuItem, MenuItemPayload } from "../utils/types";
 
@@ -180,6 +181,53 @@ class MenuRepository {
     }
   }
   
+
+  async getRecommendedItems(mealTime: string): Promise<string[]> {
+    const [recommendedItems] = await connection.query<RowDataPacket[]>(
+        `SELECT menu_item.name
+        FROM menu_item
+        JOIN Sentiment ON menu_item.id = Sentiment.menu_item_id
+        WHERE menu_item.mealType = ?
+        ORDER BY Sentiment.sentiment_score DESC, Sentiment.average_rating DESC
+        LIMIT 5`,
+        [mealTime]
+    );
+    console.log("recommendedItems:01", recommendedItems);
+  
+    return recommendedItems.map(item => item.name);
+  }
+  
+  async rolloutMenuItems(mealTime: string, itemNames: string[]): Promise<string> {
+    const today = new Date().toISOString().slice(0, 10);
+  
+    const [existingRollout] = await connection.query<RowDataPacket[]>(
+        'SELECT * FROM Rolledout_Item WHERE date = ? AND mealType = ?',
+        [today, mealTime]
+    );
+  
+    if (existingRollout.length > 0) {
+        return 'Menu items have already been rolled out for today. Please wait until tomorrow.';
+    }
+    console.log("nitin_itemname", itemNames)
+    const formattedItems = itemNames.map(item => `%${item.trim()}%`);
+    for (const itemName of formattedItems) {
+        const [item] = await connection.query<RowDataPacket[]>(
+            'SELECT id FROM menu_item WHERE name Like ? AND mealType = ?',
+            [itemName, mealTime]
+        );
+        console.log("nitin_item:01", item);
+        if (item.length === 0) {
+            return `Menu item ${itemName} does not exist for ${mealTime}.`;
+        }
+  
+        await connection.query(
+            'INSERT INTO Rolledout_Item (menu_item_id, mealType, date) VALUES (?, ?, ?)',
+            [item[0].id, mealTime, today]
+        );
+    }
+  
+    return `Menu items for ${mealTime} rolled out successfully.`;
+  }
 }
 
 export const menuRepository = new MenuRepository();

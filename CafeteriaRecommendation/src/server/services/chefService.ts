@@ -53,3 +53,21 @@ export async function getFeedbackById(itemId: number, callback: Function) {
   }
 }
 
+export async function rollOutMenu(callback: Function) {
+  const mealTimes = ["breakfast", "lunch", "dinner"];
+  const items: string[] = [];
+
+  try {
+    for (const mealTime of mealTimes) {
+      const recommendedItems = await menuRepository.getRecommendedItems(mealTime);
+      console.log('recommendedItems', recommendedItems);
+      const message = `Top recommended items for ${mealTime}: ${recommendedItems.join(', ')}`;
+      items.push(message);
+    }
+    console.log('Top Recommendations:', items);
+    callback ({sucess: true, items});
+  } catch (err) {
+    console.error('Error getting top recommendations:', err);
+    throw new Error('Error getting top recommendations');
+  }
+}
