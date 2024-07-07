@@ -1,23 +1,10 @@
-
 import { Socket } from 'socket.io';
-import { recommendMenu, viewMonthlyFeedback, getFeedbackById, selectNextDayMenu, getMenu, getRecommendation } from '../services/chefService';
-import { getFoodItemForNextDay } from '../utils/recommendationEngine';
+import { recommendMenu, viewMonthlyFeedback, getFeedbackById, getMenu, getRecommendation } from '../services/chefService';
 
 export function handleChefActions(socket: Socket) {
-  socket.on('getMenu', getMenu);
-  socket.on('recommendMenu', recommendMenu);
-  socket.on('viewMonthlyFeedback', viewMonthlyFeedback);
+  socket.on('getMenu', (callback: Function) => getMenu(callback));
+  socket.on('recommendMenu', (itemIds: number[], callback: Function) => recommendMenu(itemIds, callback));
+  socket.on('viewMonthlyFeedback', (callback: Function) => viewMonthlyFeedback(callback));
+  socket.on('getRecommendation', (callback: Function) => getRecommendation(callback));
   socket.on('getFeedbackById', (itemId: number, callback: Function) => getFeedbackById(itemId, callback));
-  socket.on('getFoodItemForNextDay', async ({ menuType, returnItemListSize }, callback) => {
-    const recommendedItems = await getFoodItemForNextDay(menuType, returnItemListSize);
-    callback({ success: true, recommendedItems });
-  });
-  socket.on('selectNextDayMenu', async (itemIds: number[], callback: Function) => {
-    const result = await selectNextDayMenu(itemIds);
-    if (result.success) {
-      socket.broadcast.emit('nextDayMenu', result.nextDayMenuItems);
-    }
-    callback(result);
-  });
-  socket.on('getRecommendation', getRecommendation);
 }

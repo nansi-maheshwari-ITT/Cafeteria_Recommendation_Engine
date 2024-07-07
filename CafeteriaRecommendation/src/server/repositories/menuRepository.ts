@@ -165,7 +165,6 @@ class MenuRepository {
   }
 
   async getRecommendations(): Promise<MenuItem[]> {
-    console.log('i am inside getRecommendations');
     try {
         const query = `
         SELECT m.*, s.sentiment, s.average_rating, s.sentiment_score 
