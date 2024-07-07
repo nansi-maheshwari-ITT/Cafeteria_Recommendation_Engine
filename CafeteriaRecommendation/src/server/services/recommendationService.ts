@@ -8,60 +8,59 @@ import {
 import { RatingComment } from "../utils/types";
 import { format } from "date-fns";
 
-const positiveWords = new Set(POSITIVE_WORDS);
-const negativeWords = new Set(NEGATIVE_WORDS);
-const neutralWords = new Set(NEUTRAL_WORDS);
-const intensifiers = new Set(INTENSIFIERS);
+const positiveSet = new Set(POSITIVE_WORDS);
+const negativeSet = new Set(NEGATIVE_WORDS);
+const neutralSet = new Set(NEUTRAL_WORDS);
+const intensifierSet = new Set(INTENSIFIERS);
 
-export async function calculateSentiments() {
+export async function updateSentimentScores() {
   try {
-    const rows = await getRecentComments();
-    console.log("rows", rows);
-    const commentsMap = mapCommentsByMenuItem(rows);
-    console.log("commentsMap", commentsMap);
+    const recentComments = await fetchRecentComments();
+    console.log("recentComments", recentComments);
+    const commentsGroupedByMenuItem = groupCommentsByMenuItem(recentComments);
+    console.log("commentsGroupedByMenuItem", commentsGroupedByMenuItem);
 
-    for (const menuItemId in commentsMap) {
-      const comments = commentsMap[menuItemId];
+    for (const menuItemId in commentsGroupedByMenuItem) {
+      const comments = commentsGroupedByMenuItem[menuItemId];
       console.log("comments", comments);
-      const { sentiment, score } = analyze(comments);
+      const { sentiment, score } = performSentimentAnalysis(comments);
       console.log("sentiment", sentiment);
       console.log("score", score);
-      const ratings = rows
-        .filter((row) => row.menu_item_id === parseInt(menuItemId, 10))
-        .map((row) => row.rating);
+      const ratings = recentComments
+        .filter((comment) => comment.menu_item_id === parseInt(menuItemId, 10))
+        .map((comment) => comment.rating);
       console.log("ratings", ratings);
       const averageRating = calculateAverageRating(ratings);
       console.log("averageRating", averageRating);
-      await saveSentimentAnalysis(
+      await storeSentimentAnalysis(
         parseInt(menuItemId, 10),
         sentiment,
         averageRating,
         score
       );
     }
-
-    console.log("Sentiments Updated....");
+    console.log("Sentiment Scores Updated....");
   } catch (error) {
-    console.error("Error updating sentiments:", error);
+    console.error("Error updating sentiment scores:", error);
   }
 }
 
-function analyze(comments: string[]): { sentiment: string; score: number } {
+function performSentimentAnalysis(comments: string[]): { sentiment: string; score: number } {
   let positiveCount = 0;
   let negativeCount = 0;
   let neutralCount = 0;
 
   comments.forEach((comment) => {
-    const result = processText(comment);
+    const result = analyzeComment(comment);
     positiveCount += result.positiveCount;
     negativeCount += result.negativeCount;
     neutralCount += result.neutralCount;
   });
 
-  return calculateSentiment(positiveCount, negativeCount, neutralCount);
+  return calculateOverallSentiment(positiveCount, negativeCount, neutralCount);
 }
 
-function processText(comment: string): {
+function analyzeComment(comment: string): {
   positiveCount: number;
   negativeCount: number;
   neutralCount: number;
@@ -71,68 +70,68 @@ function processText(comment: string): {
   let neutralCount = 0;
 
   const words = comment.toLowerCase().split(/\W+/);
-  let modifiedWords = [...words];
+  let adjustedWords = [...words];
 
   words.forEach((word, index) => {
     if (word === "not" && index < words.length - 1) {
       const nextWord = words[index + 1];
-      if (positiveWords.has(nextWord)) {
+      if (positiveSet.has(nextWord)) {
         negativeCount += 1;
-        modifiedWords[index + 1] = "";
-      } else if (negativeWords.has(nextWord)) {
+        adjustedWords[index + 1] = "";
+      } else if (negativeSet.has(nextWord)) {
         positiveCount += 1;
-        modifiedWords[index + 1] = "";
+        adjustedWords[index + 1] = "";
       }
-    } else if (intensifiers.has(word) && index < words.length - 1) {
+    } else if (intensifierSet.has(word) && index < words.length - 1) {
       const nextWord = words[index + 1];
-      if (positiveWords.has(nextWord)) {
+      if (positiveSet.has(nextWord)) {
         positiveCount += 2;
-      } else if (negativeWords.has(nextWord)) {
+      } else if (negativeSet.has(nextWord)) {
         negativeCount += 2;
       }
     }
   });
 
-  modifiedWords.forEach((word) => {
-    if (positiveWords.has(word)) positiveCount += 1;
-    if (negativeWords.has(word)) negativeCount += 1;
-    if (neutralWords.has(word)) neutralCount += 1;
+  adjustedWords.forEach((word) => {
+    if (positiveSet.has(word)) positiveCount += 1;
+    if (negativeSet.has(word)) negativeCount += 1;
+    if (neutralSet.has(word)) neutralCount += 1;
   });
 
   return { positiveCount, negativeCount, neutralCount };
 }
 
-function calculateSentiment(
+function calculateOverallSentiment(
   positiveCount: number,
   negativeCount: number,
   neutralCount: number
 ): { sentiment: string; score: number } {
   const totalWords = positiveCount + negativeCount + neutralCount;
   if (totalWords === 0) {
-    return { sentiment: "Average", score: 50 };
+    return { sentiment: "Neutral", score: 50 };
   }
 
   const positiveScore = (positiveCount / totalWords) * 100;
   const negativeScore = (negativeCount / totalWords) * 100;
-  const sentimentScore = positiveScore - negativeScore;
+  const netSentimentScore = positiveScore - negativeScore;
 
   let sentiment: string;
-  if (sentimentScore >= 80) {
+  if (netSentimentScore >= 80) {
     sentiment = "Highly Recommended";
-  } else if (sentimentScore >= 60) {
+  } else if (netSentimentScore >= 60) {
     sentiment = "Good";
-  } else if (sentimentScore >= 40) {
+  } else if (netSentimentScore >= 40) {
     sentiment = "Average";
-  } else if (sentimentScore >= 20) {
-    sentiment = "Bad";
+  } else if (netSentimentScore >= 20) {
+    sentiment = "Poor";
   } else {
     sentiment = "Avoid";
   }
 
-  return { sentiment, score: Math.abs(Math.round(sentimentScore)) };
+  return { sentiment, score: Math.abs(Math.round(netSentimentScore)) };
 }
 
-async function getRecentComments(): Promise<RatingComment[]> {
+async function fetchRecentComments(): Promise<RatingComment[]> {
   const threeMonthsAgo = format(
     new Date(new Date().setMonth(new Date().getMonth() - 3)),
     "yyyy-MM-dd"
@@ -141,7 +140,7 @@ async function getRecentComments(): Promise<RatingComment[]> {
   return await recommendationDB.getRecentComments(threeMonthsAgo);
 }
 
-function mapCommentsByMenuItem(rows: RatingComment[]): {
+function groupCommentsByMenuItem(rows: RatingComment[]): {
   [key: number]: string[];
 } {
   return rows.reduce((map, row) => {
@@ -153,7 +152,7 @@ function mapCommentsByMenuItem(rows: RatingComment[]): {
   }, {} as { [key: number]: string[] });
 }
 
-async function saveSentimentAnalysis(
+async function storeSentimentAnalysis(
   menuItemId: number,
   sentiment: string,
   averageRating: number,

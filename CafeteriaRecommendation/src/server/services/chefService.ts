@@ -1,9 +1,9 @@
 import { menuRepository } from '../repositories/menuRepository';
-import { calculateSentiments } from './recommendationService';
+import { updateSentimentScores } from './recommendationService';
 
 export async function getMenu(callback: Function) {
   try {
-    await calculateSentiments();
+    await updateSentimentScores();
     const menuItems = await menuRepository.getMenu();
     callback({ success: true, menuItems });
   } catch (error) {
@@ -24,7 +24,7 @@ export async function recommendMenu(itemIds: number[], callback: Function) {
 
 export async function getRecommendation(callback: Function) {
   try {
-    await calculateSentiments();
+    await updateSentimentScores();
     const menuItems = await menuRepository.getRecommendations();
     callback({ success: true, menuItems });
   } catch (error) {
