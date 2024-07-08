@@ -11,6 +11,7 @@ function login() {
       socket.emit('login', { employeeId, name }, (response: any) => {
         if (response.success) {
           console.log('Login successful');
+          loggedInUser = { employeeId, name };
           promptUser(response.user.role);
         } else {
           console.log('Login failed:', response.message);
@@ -28,8 +29,4 @@ socket.on('connect', () => {
 
 socket.on('disconnect', () => {
   console.log('Disconnected from the server');
-});
-
-socket.on('nextDayMenu', (nextDayMenuItems) => {
-  console.log('Next day menu items:', nextDayMenuItems);
 });

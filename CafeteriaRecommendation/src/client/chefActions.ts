@@ -18,12 +18,9 @@ export async function handleChefChoice(choice: string) {
         await viewRecommendations();
         break;
       case "5":
-        await viewRecommendedFoodItems();
+        await rolloutMenu();
         break;
-        case "6":
-          await rolloutMenu();
-          break;
-      case "7":
+      case "6":
         rl.close();
         socket.close();
         console.log("Logging out the chef console!");
@@ -83,9 +80,15 @@ function viewMenu() {
   });
 }
 
-async function viewRecommendedFoodItems() {
+async function rolloutMenu() {
   socket.emit("getRecommendedFoodItems", (response: any) => {
     console.table(response.items);
+    if (loggedInUser) {
+      rolloutFoodItems();
+    } else {
+      console.log("User not logged in");
+      promptUser("chef");
+    }
   });
 }
 
@@ -102,17 +105,5 @@ async function rolloutFoodItems() {
   }
   console.log("Items rolled out successfully.\n");
   promptUser("chef");
-}
-
-async function rolloutMenu() {
-  socket.emit("rolloutMenu", (response: any) => {
-    console.table(response.items);
-    if (loggedInUser) {
-      rolloutFoodItems();
-    } else {
-      console.log("User not logged in");
-      promptUser("chef");
-    }
-  });
 }
 

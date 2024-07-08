@@ -208,14 +208,12 @@ class MenuRepository {
     if (existingRollout.length > 0) {
         return 'Menu items have already been rolled out for today. Please wait until tomorrow.';
     }
-    console.log("nitin_itemname", itemNames)
     const formattedItems = itemNames.map(item => `%${item.trim()}%`);
     for (const itemName of formattedItems) {
         const [item] = await connection.query<RowDataPacket[]>(
             'SELECT id FROM menu_item WHERE name Like ? AND mealType = ?',
             [itemName, mealTime]
         );
-        console.log("nitin_item:01", item);
         if (item.length === 0) {
             return `Menu item ${itemName} does not exist for ${mealTime}.`;
         }
@@ -225,7 +223,6 @@ class MenuRepository {
             [item[0].id, mealTime, today]
         );
     }
-  
     return `Menu items for ${mealTime} rolled out successfully.`;
   }
 }
