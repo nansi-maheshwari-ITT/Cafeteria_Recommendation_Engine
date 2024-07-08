@@ -197,34 +197,39 @@ class MenuRepository {
     return recommendedItems.map(item => item.name);
   }
   
-  async rolloutMenuItems(mealTime: string, itemNames: string[]): Promise<string> {
-    const today = new Date().toISOString().slice(0, 10);
+  async  rollOutMenuItems(mealType: string, items: string[]): Promise<string> {
+    const today = new Date().toISOString().split('T')[0];
   
-    const [existingRollout] = await connection.query<RowDataPacket[]>(
-        'SELECT * FROM Rolledout_Item WHERE date = ? AND mealType = ?',
-        [today, mealTime]
+    const [existingRollouts] = await connection.query<RowDataPacket[]>(
+      'SELECT * FROM Rolledout_Item WHERE date = ? AND mealType = ?',
+      [today, mealType]
     );
   
-    if (existingRollout.length > 0) {
-        return 'Menu items have already been rolled out for today. Please wait until tomorrow.';
+    if (existingRollouts.length > 0) {
+      return `Today's menu for ${mealType} has already been set. Please update tomorrow.`;
     }
-    const formattedItems = itemNames.map(item => `%${item.trim()}%`);
-    for (const itemName of formattedItems) {
-        const [item] = await connection.query<RowDataPacket[]>(
-            'SELECT id FROM menu_item WHERE name Like ? AND mealType = ?',
-            [itemName, mealTime]
-        );
-        if (item.length === 0) {
-            return `Menu item ${itemName} does not exist for ${mealTime}.`;
-        }
   
-        await connection.query(
-            'INSERT INTO Rolledout_Item (menu_item_id, mealType, date) VALUES (?, ?, ?)',
-            [item[0].id, mealTime, today]
-        );
+    for (const item of items) {
+      const trimmedItem = item.trim();
+      const searchPattern = `%${trimmedItem}%`;
+  
+      const [menuEntry] = await connection.query<RowDataPacket[]>(
+        'SELECT id FROM menu_item WHERE name LIKE ? AND mealType = ?',
+        [searchPattern, mealType]
+      );
+  
+      if (menuEntry.length === 0) {
+        return `The item "${trimmedItem}" is not found in the ${mealType} menu.`;
+      }
+  
+      await connection.query(
+        'INSERT INTO Rolledout_Item (menu_item_id, mealType, date) VALUES (?, ?, ?)',
+        [menuEntry[0].id, mealType, today]
+      );
     }
-    return `Menu items for ${mealTime} rolled out successfully.`;
-  }
+  
+    return `The menu items for ${mealType} have been successfully rolled out.`;
+  }  
 }
 
 export const menuRepository = new MenuRepository();

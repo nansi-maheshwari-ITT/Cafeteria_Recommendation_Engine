@@ -1,4 +1,5 @@
 import { menuRepository } from '../repositories/menuRepository';
+import { notificationRepository } from '../repositories/notificationRepository';
 import { updateSentimentScores } from './recommendationService';
 
 export async function getMenu(callback: Function) {
@@ -70,5 +71,21 @@ export async function getRecommendedFoodItems(callback: Function) {
   } catch (error) {
     console.error('Failed to retrieve recommendations:', error);
     throw new Error('Failed to retrieve recommendations');
+  }
+}
+
+export async function rollOutNotification(mealTime: string, items: string[],callback:Function) {
+  try {
+    const message = await menuRepository.rollOutMenuItems(mealTime, items);
+    console.log('message', message);
+    if(message === 'Menu items have already been rolled out for today. Please wait until tomorrow.'){
+      return message;
+    }else{
+      notificationRepository.addNotification('employee', `Chef has rolled out ${items} for tomorrow's ${mealTime}.`, 1);
+    }
+    callback({ success: true });
+  } catch (err) {
+    console.error('Error rolling out food item:', err);
+    callback({ success: false });
   }
 }

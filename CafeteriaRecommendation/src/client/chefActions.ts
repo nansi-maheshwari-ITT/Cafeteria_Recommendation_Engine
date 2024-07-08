@@ -18,7 +18,7 @@ export async function handleChefChoice(choice: string) {
         await viewRecommendations();
         break;
       case "5":
-        await rolloutMenu();
+        await rollOutMenu();
         break;
       case "6":
         rl.close();
@@ -80,11 +80,11 @@ function viewMenu() {
   });
 }
 
-async function rolloutMenu() {
+async function rollOutMenu() {
   socket.emit("getRecommendedFoodItems", (response: any) => {
     console.table(response.items);
     if (loggedInUser) {
-      rolloutFoodItems();
+      rollOutNotification();
     } else {
       console.log("User not logged in");
       promptUser("chef");
@@ -92,17 +92,21 @@ async function rolloutMenu() {
   });
 }
 
-async function rolloutFoodItems() {
+async function rollOutNotification() {
   const mealTimes = ["breakfast", "lunch", "dinner"];
+  
   for (const mealTime of mealTimes) {
-    console.log(`Please enter three items for ${mealTime}:`);
+    const numberOfItems = await askQuestionAsync(`Please enter the number of items you want to roll out for ${mealTime}: `);
     const items: Array<string> = [];
-    for (let i = 0; i < 3; i++) {
+    
+    for (let i = 0; i < Number(numberOfItems); i++) {
       const item = await askQuestionAsync(`Enter item ${i + 1}: `);
       items.push(item);
     }
-    socket.emit("rolloutFoodItem", mealTime, items);
+    
+    socket.emit("rollOutFoodItem", mealTime, items);
   }
+  
   console.log("Items rolled out successfully.\n");
   promptUser("chef");
 }

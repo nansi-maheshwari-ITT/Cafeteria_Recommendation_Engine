@@ -98,7 +98,7 @@ export const ADMIN_OPTIONS = [
 export const CHEF_OPTIONS = [
     '1. Check Recommended Food Items',
     '2. See the Menu',
-    '3. Rollout Food for tomorrow',
+    '3. rollOut Food for tomorrow',
     "4. Check responses for today's meals",
     "5. Select today's meals",
     '6. View notifications',
