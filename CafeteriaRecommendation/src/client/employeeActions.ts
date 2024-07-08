@@ -65,8 +65,40 @@ function giveFeedback(): void {
 }
 
 function voteForTomorrowMenu(): void {
- 
+  socket.emit("getRolloutItems", loggedInUser, (response: any) => {
+    console.log(response);
+    if (loggedInUser) {
+      gatherVotesForMenu(loggedInUser.name);
+    } else {
+      console.log("User is not logged in");
+      promptUser("employee");
+    }
+  });
 }
+
+async function gatherVotesForMenu(username: string) {
+  const meals = ["breakfast", "lunch", "dinner"];
+  
+  for (const meal of meals) {
+    let selectedItem: string;
+    let isValid = false;
+    
+    while (!isValid) {
+      selectedItem = await askQuestion(`Please choose an item for ${meal}: `);
+      await new Promise<void>((resolve) => {
+        socket.emit("submitVote", selectedItem, meal, username, (result: string) => {
+          isValid = result === "true";
+          console.log(result);
+          resolve();
+        });
+      });
+    }
+  }
+
+  console.log("Your selections have been successfully recorded.\n");
+  promptUser("employee");
+}
+
 
 function viewNotification(): void {
   

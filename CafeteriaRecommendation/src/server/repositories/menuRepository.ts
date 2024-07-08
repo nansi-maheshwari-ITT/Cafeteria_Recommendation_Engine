@@ -230,6 +230,60 @@ class MenuRepository {
   
     return `The menu items for ${mealType} have been successfully rolled out.`;
   }  
+
+  async selectMenuItem( menuItemName: string, mealTime: string, username: string): Promise<string> {
+    const formattedmenuItemName = `%${menuItemName}%`;
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const date = tomorrow.toISOString().slice(0, 10);
+
+    const [empId] = await connection.query<RowDataPacket[]>('SELECT employeeId FROM User WHERE name = ?', [username]);
+    if (empId.length === 0) {
+      return `User ${username} not found.`;
+    }
+
+    const [existingSelection] = await connection.query<RowDataPacket[]>(
+        'SELECT * FROM Employee_Selection WHERE emp_id = ? AND date = ? AND mealType = ?',
+        [empId[0].employeeId, date, mealTime]
+    );
+      console.log("existingSelection:01", existingSelection);
+     if (existingSelection.length > 0) {
+        return `You have already selected the ${mealTime} item for tomorrow.`;
+    }
+
+    const [menuItem] = await connection.query<RowDataPacket[]>(
+        'SELECT id FROM menu_item WHERE name Like ? AND mealType = ?',
+        [formattedmenuItemName, mealTime]
+    );
+
+    if (menuItem.length === 0) {
+        return `Menu item ${menuItemName} does not exist for ${mealTime}.`;
+    }
+
+    await connection.query(
+        'INSERT INTO Employee_Selection (emp_id, menu_item_id, mealType, date) VALUES (?, ?, ?, ?)',
+        [empId[0].employeeId, menuItem[0].id, mealTime, date]
+    );
+
+    return `Menu item for ${mealTime} selected successfully.`;
+}
+
+async getRolledOutItems(mealType: string, user: any) {
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    const [rows] = await connection.query<RowDataPacket[]>(
+      `SELECT Menu_Item.name
+          FROM Rolledout_Item
+          JOIN Menu_Item ON Rolledout_Item.menu_item_id = Menu_Item.id
+          WHERE Rolledout_Item.date = ? AND Rolledout_Item.mealType = ?`,
+      [today, mealType]
+    );
+    return rows.map((row) => row.name);
+  } catch (err) {
+    console.error("Error fetching rolled out items:", err);
+    throw err;
+  }
+}
 }
 
 export const menuRepository = new MenuRepository();
