@@ -38,8 +38,8 @@ export function promptUser(role: 'admin' | 'chef' | 'employee') {
     console.log('8. Exit');
   } else if (role === 'employee') {
     console.log('1. View Menu');
+    console.log('3. View Notifications');
     console.log('2. Give Feedback');
-    console.log('3. View Notification'  );
     console.log('4. Give vote for tomorrow menu');
     console.log('5. Exit');
   }

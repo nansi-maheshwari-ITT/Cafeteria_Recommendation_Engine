@@ -1,63 +1,73 @@
-import { socket } from "./client";
-import { promptUser, rl } from "../server/utils/promptUtils";
-import { MenuItem } from "../server/utils/types";
+import { socket, loggedInUser } from "./client";
+import { promptUser, rl, askQuestion } from "../server/utils/promptUtils";
 
 export function handleEmployeeChoice(choice: string) {
   switch (choice) {
     case "1":
-      socket.emit("viewMenu", (response: any) => {
-        const formattedMenuItems = response.menuItems.map((item: MenuItem) => ({
-          id: item.id,
-          name: item.name,
-          price: item.price,
-          mealType: item.mealType,
-          availability: item.availability ? "available" : "not available",
-        }));
-        console.table(formattedMenuItems);
-        promptUser("employee");
-      });
+      viewMenu();
       break;
     case "2":
-      rl.question("Enter item ID to give feedback on: ", (itemId) => {
-        const id = parseInt(itemId);
-
-        socket.emit("checkIfItemExists", id, (exists: boolean) => {
-          if (exists) {
-            rl.question("Enter your comment: ", (comment) => {
-              rl.question("Enter your rating (1-5): ", (rating) => {
-                socket.emit(
-                  "giveFeedback",
-                  {
-                    itemId: parseInt(itemId),
-                    comment,
-                    rating: parseInt(rating),
-                  },
-                  (response: any) => {
-                    console.log(response);
-                    promptUser("employee");
-                  }
-                );
-              });
-            });
-          } else {
-            // Item does not exist, notify and prompt for valid ID
-            console.log(`Menu item with ID ${itemId} does not exist.`);
-            promptUser("employee");
-          }
-        });
-      });
+      viewNotification();  
       break;
-    case "3":
-      console.log("viewing Notifications");
+      case "3":
+      giveFeedback();
       break;
     case "4":
+      voteForTomorrowMenu();
+      break;
+    case "5":
       rl.close();
       socket.close();
-      console.log("Goodbye!");
+      console.log("Logging out the employee console!");
       break;
     default:
-      console.log("Invalid choice, please try again.");
+      console.log("Invalid option. Please choose a valid option.");
       promptUser("employee");
       break;
   }
+}
+
+function viewMenu(): void {
+  socket.emit("viewMenu", (response: { menuItems: any[] }) => {
+    console.table(response.menuItems);
+    promptUser("employee");
+  });
+}
+
+function giveFeedback(): void {
+  rl.question("Enter the item ID you want to give feedback on: ", (itemId) => {
+    const id = parseInt(itemId);
+
+    socket.emit("checkIfItemExists", id, (exists: boolean) => {
+      if (exists) {
+        rl.question("Provide your comments: ", (comment) => {
+          rl.question("Rate the item (1-5): ", (rating) => {
+            socket.emit(
+              "giveFeedback",
+              {
+                itemId: id,
+                comment,
+                rating: parseInt(rating),
+              },
+              (response: any) => {
+                console.log(response);
+                promptUser("employee");
+              }
+            );
+          });
+        });
+      } else {
+        console.log(`No menu item found with ID ${itemId}.`);
+        promptUser("employee");
+      }
+    });
+  });
+}
+
+function voteForTomorrowMenu(): void {
+ 
+}
+
+function viewNotification(): void {
+  
 }
