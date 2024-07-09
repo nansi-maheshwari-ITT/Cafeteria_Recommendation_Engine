@@ -1,4 +1,5 @@
 
+import { menuRepository } from "../server/repositories/menuRepository";
 import { askQuestionAsync, promptUser, rl } from "../server/utils/promptUtils";
 import { loggedInUser, socket } from "./client";
 
@@ -100,11 +101,24 @@ async function rollOutNotification() {
     const items: Array<string> = [];
     
     for (let i = 0; i < Number(numberOfItems); i++) {
-      const item = await askQuestionAsync(`Enter item ${i + 1}: `);
-      items.push(item);
+      let item;
+      while (true) {
+        item = await askQuestionAsync(`Enter item ${i + 1}: `);
+        const isValid = await menuRepository.isItemValid(mealTime, item);
+        if (isValid) {
+          items.push(item);
+          break;
+        } else {
+          console.log(`The item "${item}" is not found in the ${mealTime} menu. Please enter a valid option.`);
+        }
+      }
     }
     
-    socket.emit("rollOutNotification", mealTime, items);
+    socket.emit("rollOutNotification", mealTime, items, (response: any) => {
+      if (!response.success) {
+        console.error(response.message);
+      }
+    });
   }
   
   console.log("Items rolled out successfully.\n");

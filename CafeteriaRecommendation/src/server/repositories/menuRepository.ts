@@ -229,48 +229,41 @@ class MenuRepository {
     }
   
     return `The menu items for ${mealType} have been successfully rolled out.`;
-  }  
-
-  async selectMenuItem(menuItemName: string, mealTime: string, username: string): Promise<string> {
+  }
+  
+  async  selectMenuItem(menuItemName: string, mealTime: string, username: string): Promise<string> {
     const formattedName = `%${menuItemName}%`;
     const date = new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0];
-
+  
     const [[user]] = await connection.query<RowDataPacket[]>('SELECT employeeId FROM User WHERE name = ?', [username]);
     if (!user) {
-      const message = `User ${username} not found.`;
-      console.log(message);
-      return message;
+      return `User ${username} not found.`;
     }
-
+  
     const [[existingSelection]] = await connection.query<RowDataPacket[]>(
       'SELECT * FROM Employee_Selection WHERE emp_id = ? AND date = ? AND mealType = ?',
       [user.employeeId, date, mealTime]
     );
     if (existingSelection) {
-      const message = `You have already selected the ${mealTime} item for tomorrow.`;
-      console.log(message);
-      return message;
+      return `You have already selected the ${mealTime} item for tomorrow.`;
     }
-
+  
     const [[menuItem]] = await connection.query<RowDataPacket[]>(
       'SELECT id FROM menu_item WHERE name LIKE ? AND mealType = ?',
       [formattedName, mealTime]
     );
     if (!menuItem) {
-      const message = `Menu item ${menuItemName} does not exist for ${mealTime}.`;
-      console.log(message);
-      return message;
+      return `Menu item ${menuItemName} does not exist for ${mealTime}.`;
     }
-
+  
     await connection.query(
       'INSERT INTO Employee_Selection (emp_id, menu_item_id, mealType, date) VALUES (?, ?, ?, ?)',
       [user.employeeId, menuItem.id, mealTime, date]
     );
-    const successMessage = `Menu item for ${mealTime} selected successfully.`;
-    console.log(successMessage);
-    return successMessage;
+    return `Menu item for ${mealTime} selected successfully.`;
   }
-
+  
+  
   async getRolledOutItems(mealType: string, user: any) {
     try {
       const today = new Date().toISOString().split('T')[0];
@@ -292,6 +285,15 @@ class MenuRepository {
       }
       throw error;
     }
+  }
+
+  async  isItemValid(mealType: string, item: string): Promise<boolean> {
+    const searchPattern = `%${item.trim()}%`;
+    const [menuEntry] = await connection.query<RowDataPacket[]>(
+      'SELECT id FROM menu_item WHERE name LIKE ? AND mealType = ?',
+      [searchPattern, mealType]
+    );
+    return menuEntry.length > 0;
   }
 }
 

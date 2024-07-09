@@ -35,10 +35,15 @@ export async function getRolloutItems(user: any, callback: Function) {
       if (rolledOutItems.length > 0) {
         const message = `Rolled out item for ${mealType} is: ${rolledOutItems.join(', ')}`;
         messages.push(message);
-        callback({ status: 'printMessage', message: messages.join('\n') });
+       
       }
     }
-    callback({ status: 'empty', message: 'No rolled out items for selection' });
+    if(messages.length>0){
+      callback({ status: 'printMessage', message: messages.join('\n') });
+    }else{
+      callback({ status: 'empty', message: 'No rolled out items for selection' });
+    }
+   
   } catch (err) {
     console.error('Error getting rollout items:', err);
     callback({ status: 'error', message: 'Error getting rollout items' });
@@ -47,13 +52,15 @@ export async function getRolloutItems(user: any, callback: Function) {
 
 export async function submitVote(item: string, mealType: string, username: string, callback: Function) {
   try {
-    const exists = await menuRepository.selectMenuItem(item, mealType, username);
-    callback(exists);
+    const result = await menuRepository.selectMenuItem(item, mealType, username);
+    const success = result === `Menu item for ${mealType} selected successfully.`;
+    callback({ success, message: result });
   } catch (err) {
     console.error('Error voting for food:', err);
-    callback(false);
+    callback({ success: false, message: 'Error voting for food' });
   }
 }
+
 
 export async function viewNotification(callback: Function) {
   try {

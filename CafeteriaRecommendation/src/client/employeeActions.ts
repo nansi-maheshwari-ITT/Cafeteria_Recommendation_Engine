@@ -82,27 +82,26 @@ function voteForTomorrowMenu(): void {
 }
 
 async function gatherVotesForMenu(username: string) {
-  const meals = ["breakfast", "lunch", "dinner"];
-  
-  for (const meal of meals) {
-    let selectedItem: string;
-    let isValid = false;
-    
-    while (!isValid) {
-      selectedItem = await askQuestion(`Please choose an item for ${meal}: `);
+  const mealTypes = ["breakfast", "lunch", "dinner"];
+  for (const mealType of mealTypes) {
+    let item: string;
+    let exists = "false";
+    do {
+      item = await askQuestion(`Please select one item for ${mealType}: `);
       await new Promise<void>((resolve) => {
-        socket.emit("submitVote", selectedItem, meal, username, (result: string) => {
-          isValid = result === "true";
-          console.log(result);
+        socket.emit("submitVote", item, mealType, username, (result: string) => {
+          exists = result;
+          console.log(exists);
           resolve();
         });
       });
-    }
+    } while (!exists);
   }
-
-  console.log("Your selections have been successfully recorded.\n");
+  console.log("Your responses have been recorded successfully.\n");
   promptUser("employee");
 }
+
+
 
 
 function viewNotification() {
