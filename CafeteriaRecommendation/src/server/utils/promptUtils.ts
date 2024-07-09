@@ -33,8 +33,8 @@ export function promptUser(role: 'admin' | 'chef' | 'employee') {
     console.log('3. View Feedback For particular item');
     console.log('4. View recommended food items');
     console.log('5. RollOut menu options for tomorrow');
-    console.log("6. Check responses for today's meals");
-    console.log("7. Finalize menu");
+    console.log("6. Check votes for tomorrow's menu");
+    console.log("7. Finalize menu for tomorrow");
     console.log('8. Exit');
   } else if (role === 'employee') {
     console.log('1. View Menu');

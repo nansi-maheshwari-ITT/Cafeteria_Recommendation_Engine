@@ -99,3 +99,48 @@ export async function rollOutNotification(mealTime: string, items: string[], cal
     }
   }
 }
+
+export async function checkVotes(callback: Function) {
+  const mealTimes = ['breakfast', 'lunch', 'dinner'];
+    let messages: string[] = [];
+        for (const mealTime of mealTimes) {
+            const message = await menuRepository.checkVotes(mealTime);
+            messages.push(...message);
+        }
+        callback({ success: true, messages });  
+}
+
+export async function finalizeMenuForTomorrow(callback: Function) {
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const formattedDate = tomorrow.toISOString().slice(0, 10);
+  const mealSchedule: any = {};
+
+  const mealTypes = ['breakfast', 'lunch', 'dinner'];
+  for (const mealType of mealTypes) {
+    const selectedFoods = await menuRepository.fetchMenuItemsForMeal(formattedDate, mealType);
+    mealSchedule[mealType] = selectedFoods.map((food: any) => ({
+      name: food.name,
+      votes: food.vote_count
+    }));
+  }
+
+  callback({ success: true, meals: mealSchedule });
+}
+
+export async function saveSelectedMeal(selectedMeals: { mealForBreakfast: string; mealForLunch: string; mealForDinner: string; }, callback: Function) {
+  try {
+    const formattedMeals = {
+      breakfast: selectedMeals.mealForBreakfast,
+      lunch: selectedMeals.mealForLunch,
+      dinner: selectedMeals.mealForDinner
+    };
+
+    await menuRepository.saveSelectedMeal(formattedMeals);
+    callback({ success: true, message: 'The chosen meals have been successfully saved.' });
+  } catch (error) {
+    console.error('Failed to save selected meal:', error);
+    callback({ success: false, message: 'An error occurred while saving the selected meal.' });
+  }
+}
+

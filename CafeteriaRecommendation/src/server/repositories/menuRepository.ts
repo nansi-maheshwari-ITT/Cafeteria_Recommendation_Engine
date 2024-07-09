@@ -1,6 +1,7 @@
 import { RowDataPacket } from "mysql2";
 import connection from "../utils/database";
 import { MenuItem, MenuItemPayload } from "../utils/types";
+import { notificationRepository } from "./notificationRepository";
 
 class MenuRepository {
   async findMenuItemByName(name: string): Promise<MenuItem | null> {
@@ -295,7 +296,86 @@ class MenuRepository {
     );
     return menuEntry.length > 0;
   }
+
+  async  checkVotes(mealTime: string): Promise<string[]> {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const formattedDate = tomorrow.toISOString().slice(0, 10);
+    console.log("tomorrow:", formattedDate, mealTime);
+
+    const [responses] = await connection.query<RowDataPacket[]>(
+      `SELECT menu_item.name, COUNT(Employee_Selection.menu_item_id) as vote_count
+       FROM Employee_Selection
+       JOIN menu_item ON Employee_Selection.menu_item_id = menu_item.id
+       WHERE Employee_Selection.date = ? AND Employee_Selection.mealType = ?
+       GROUP BY Employee_Selection.menu_item_id`,
+      [formattedDate, mealTime]
+    );
+
+    let responseMessages: string[] = [];
+    
+    responseMessages.push(`\x1b[34m=== Voting Results for ${mealTime} ===\x1b[0m`);
+
+    if (responses.length > 0) {
+        responses.forEach((response: any) => {
+            const itemMessage = `\n\x1b[33mMenu Item:\x1b[0m ${response.name}\n\x1b[32mVotes Received:\x1b[0m ${response.vote_count}\n`;
+            responseMessages.push(itemMessage);
+        });
+    } else {
+        const noVotesMessage = `\n\x1b[31mNo votes recorded for ${mealTime} tomorrow.\x1b[0m\n`;
+        responseMessages.push(noVotesMessage);
+    }
+
+    responseMessages.push(`\n\x1b[34m==============================\x1b[0m\n`);
+
+    return responseMessages;
 }
 
+async fetchMenuItemsForMeal(tomorrow: string, mealTime: string): Promise<RowDataPacket[]> {
+  const query = `
+    SELECT menu_item.name, COUNT(Employee_Selection.menu_item_id) as votes
+    FROM Employee_Selection
+    JOIN menu_item ON Employee_Selection.menu_item_id = menu_item.id
+    WHERE Employee_Selection.date = ? AND Employee_Selection.mealType = ?
+    GROUP BY Employee_Selection.menu_item_id
+    ORDER BY votes DESC
+  `;
+  
+  const [results] = await connection.query<RowDataPacket[]>(query, [tomorrow, mealTime]);
+  return results;
+}
+
+async saveSelectedMeal(meals: { breakfast: string, lunch: string, dinner: string }): Promise<string> {
+  const currentDate = new Date().toISOString().split('T')[0];
+
+  const [breakfastItem] = await connection.query<RowDataPacket[]>(
+    'SELECT id FROM menu_item WHERE name = ?',
+    [meals.breakfast]
+  );
+  const [lunchItem] = await connection.query<RowDataPacket[]>(
+    'SELECT id FROM menu_item WHERE name = ?',
+    [meals.lunch]
+  );
+  const [dinnerItem] = await connection.query<RowDataPacket[]>(
+    'SELECT id FROM menu_item WHERE name = ?',
+    [meals.dinner]
+  );
+
+  await connection.query(
+    `INSERT INTO Selected_Meal (menu_item_id, mealType, date)
+     VALUES (?, 'breakfast', ?), (?, 'lunch', ?), (?, 'dinner', ?)`,
+    [breakfastItem[0].id, currentDate, lunchItem[0].id, currentDate, dinnerItem[0].id, currentDate]
+  );
+
+  await notificationRepository.addNotification(
+    'employee', 
+    `Today's meals: Breakfast - ${meals.breakfast}, Lunch - ${meals.lunch}, Dinner - ${meals.dinner}.`,
+    1
+  );
+
+  return 'Meals for today have been successfully recorded.';
+}
+
+}
 
 export const menuRepository = new MenuRepository();

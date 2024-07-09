@@ -1,5 +1,5 @@
 import { Socket } from 'socket.io';
-import { recommendMenu, viewMonthlyFeedback, getFeedbackById, getMenu, getRecommendation, getRecommendedFoodItems, rollOutNotification } from '../services/chefService';
+import { recommendMenu, viewMonthlyFeedback, getFeedbackById, getMenu, getRecommendation, getRecommendedFoodItems, rollOutNotification, checkVotes, finalizeMenuForTomorrow, saveSelectedMeal } from '../services/chefService';
 
 export function handleChefActions(socket: Socket) {
   socket.on('getMenu', (callback: Function) => getMenu(callback));
@@ -9,4 +9,7 @@ export function handleChefActions(socket: Socket) {
   socket.on('getFeedbackById', (itemId: number, callback: Function) => getFeedbackById(itemId, callback));
   socket.on('getRecommendedFoodItems', (callback: Function) => getRecommendedFoodItems(callback));
   socket.on('rollOutNotification', (mealTime: string, items: string[],callback: Function) => rollOutNotification(mealTime,items,callback));
+  socket.on('checkVotes',checkVotes);
+  socket.on('finalizeMenuForTomorrow', finalizeMenuForTomorrow);
+  socket.on('saveSelectedMeal',saveSelectedMeal);
 }
