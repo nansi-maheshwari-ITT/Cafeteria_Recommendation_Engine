@@ -68,7 +68,12 @@ function voteForTomorrowMenu(): void {
   socket.emit("getRolloutItems", loggedInUser, (response: any) => {
     console.log(response);
     if (loggedInUser) {
-      gatherVotesForMenu(loggedInUser.name);
+      if( response.status!=='empty'){
+        gatherVotesForMenu(loggedInUser.name);
+      }
+      else{
+        promptUser("employee");
+      }
     } else {
       console.log("User is not logged in");
       promptUser("employee");
@@ -100,6 +105,9 @@ async function gatherVotesForMenu(username: string) {
 }
 
 
-function viewNotification(): void {
-  
+function viewNotification() {
+  socket.emit("viewNotification", (response: any) => {
+    console.table(response.notification);
+    promptUser("employee");
+  });
 }

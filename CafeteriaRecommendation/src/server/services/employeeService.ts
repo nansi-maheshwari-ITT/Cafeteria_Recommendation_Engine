@@ -1,5 +1,6 @@
 import { feedbackRepository } from '../repositories/feedbackRepository';
 import { menuRepository } from '../repositories/menuRepository';
+import { notificationRepository } from '../repositories/notificationRepository';
 import { FeedbackPayload } from '../utils/types';
 
 
@@ -25,21 +26,19 @@ export async function giveFeedback({ itemId, comment, rating }: FeedbackPayload,
 
 export async function getRolloutItems(user: any, callback: Function) {
   const mealTypes = ['breakfast', 'lunch', 'dinner'];
-  let allRolledOutItems: string[] = [];
   try {
     const messages: string[] = [];
 
     for (const mealType of mealTypes) {
       const rolledOutItems = await menuRepository.getRolledOutItems(mealType, user);
-      console.log("nitin00", rolledOutItems);
 
       if (rolledOutItems.length > 0) {
         const message = `Rolled out item for ${mealType} is: ${rolledOutItems.join(', ')}`;
         messages.push(message);
+        callback({ status: 'printMessage', message: messages.join('\n') });
       }
     }
-
-    callback({ status: 'printMessage', message: messages.join('\n') });
+    callback({ status: 'empty', message: 'No rolled out items for selection' });
   } catch (err) {
     console.error('Error getting rollout items:', err);
     callback({ status: 'error', message: 'Error getting rollout items' });
@@ -53,5 +52,15 @@ export async function submitVote(item: string, mealType: string, username: strin
   } catch (err) {
     console.error('Error voting for food:', err);
     callback(false);
+  }
+}
+
+export async function viewNotification(callback: Function) {
+  try {
+    const notification = await notificationRepository.viewNotification();
+    callback({ success: true, notification });
+  } catch (err) {
+    console.error('Error viewing notification:', err);
+    callback({ success: false });
   }
 }

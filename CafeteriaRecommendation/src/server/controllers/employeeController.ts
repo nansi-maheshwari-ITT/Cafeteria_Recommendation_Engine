@@ -1,10 +1,11 @@
 
 import { Socket } from 'socket.io';
 import { checkIfItemExists, viewMenu } from '../services/adminService';
-import { getRolloutItems, giveFeedback, submitVote } from '../services/employeeService';
+import { getRolloutItems, giveFeedback, submitVote, viewNotification } from '../services/employeeService';
 
 export function handleEmployeeActions(socket: Socket) {
   socket.on('viewMenu', viewMenu);
+  socket.on('viewNotification', viewNotification);
   socket.on('giveFeedback', giveFeedback);
   socket.on('getRolloutItems', getRolloutItems);
   socket.on('submitVote', submitVote);

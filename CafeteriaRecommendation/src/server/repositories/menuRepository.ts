@@ -282,7 +282,7 @@ class MenuRepository {
         [today, mealType]
       );
       const items = rows.map(row => row.name);
-      console.log(`Rolled out items for ${mealType}: ${items.join(', ')}`);
+      console.log(`Rolled out items for ${mealType}: ${items.join(', ')},`);
       return items;
     } catch (error) {
       if (error instanceof Error) {
