@@ -97,8 +97,19 @@ async function rollOutNotification() {
   const mealTimes = ["breakfast", "lunch", "dinner"];
   
   for (const mealTime of mealTimes) {
-    const numberOfItems = await askQuestionAsync(`Please enter the number of items you want to roll out for ${mealTime}: `);
-    const items: Array<string> = [];
+    let numberOfItems: number;
+    
+    while (true) {
+      const numberOfItemsInput = await askQuestionAsync(`Please enter the number of items you want to roll out for ${mealTime}: `);
+      numberOfItems = Number(numberOfItemsInput);
+
+      if (!isNaN(numberOfItems) && numberOfItems > 0) {
+        break;
+      } else {
+        console.log("Please enter a valid number greater than 0.");
+      }
+    }
+ const items: Array<string> = [];
     
     for (let i = 0; i < Number(numberOfItems); i++) {
       let item;
