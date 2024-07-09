@@ -104,7 +104,7 @@ async function rollOutNotification() {
       items.push(item);
     }
     
-    socket.emit("rollOutFoodItem", mealTime, items);
+    socket.emit("rollOutNotification", mealTime, items);
   }
   
   console.log("Items rolled out successfully.\n");
