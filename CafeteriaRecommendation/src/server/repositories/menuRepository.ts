@@ -231,59 +231,69 @@ class MenuRepository {
     return `The menu items for ${mealType} have been successfully rolled out.`;
   }  
 
-  async selectMenuItem( menuItemName: string, mealTime: string, username: string): Promise<string> {
-    const formattedmenuItemName = `%${menuItemName}%`;
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const date = tomorrow.toISOString().slice(0, 10);
+  async selectMenuItem(menuItemName: string, mealTime: string, username: string): Promise<string> {
+    const formattedName = `%${menuItemName}%`;
+    const date = new Date(new Date().setDate(new Date().getDate() + 1)).toISOString().split('T')[0];
 
-    const [empId] = await connection.query<RowDataPacket[]>('SELECT employeeId FROM User WHERE name = ?', [username]);
-    if (empId.length === 0) {
-      return `User ${username} not found.`;
+    const [[user]] = await connection.query<RowDataPacket[]>('SELECT employeeId FROM User WHERE name = ?', [username]);
+    if (!user) {
+      const message = `User ${username} not found.`;
+      console.log(message);
+      return message;
     }
 
-    const [existingSelection] = await connection.query<RowDataPacket[]>(
-        'SELECT * FROM Employee_Selection WHERE emp_id = ? AND date = ? AND mealType = ?',
-        [empId[0].employeeId, date, mealTime]
+    const [[existingSelection]] = await connection.query<RowDataPacket[]>(
+      'SELECT * FROM Employee_Selection WHERE emp_id = ? AND date = ? AND mealType = ?',
+      [user.employeeId, date, mealTime]
     );
-      console.log("existingSelection:01", existingSelection);
-     if (existingSelection.length > 0) {
-        return `You have already selected the ${mealTime} item for tomorrow.`;
+    if (existingSelection) {
+      const message = `You have already selected the ${mealTime} item for tomorrow.`;
+      console.log(message);
+      return message;
     }
 
-    const [menuItem] = await connection.query<RowDataPacket[]>(
-        'SELECT id FROM menu_item WHERE name Like ? AND mealType = ?',
-        [formattedmenuItemName, mealTime]
+    const [[menuItem]] = await connection.query<RowDataPacket[]>(
+      'SELECT id FROM menu_item WHERE name LIKE ? AND mealType = ?',
+      [formattedName, mealTime]
     );
-
-    if (menuItem.length === 0) {
-        return `Menu item ${menuItemName} does not exist for ${mealTime}.`;
+    if (!menuItem) {
+      const message = `Menu item ${menuItemName} does not exist for ${mealTime}.`;
+      console.log(message);
+      return message;
     }
 
     await connection.query(
-        'INSERT INTO Employee_Selection (emp_id, menu_item_id, mealType, date) VALUES (?, ?, ?, ?)',
-        [empId[0].employeeId, menuItem[0].id, mealTime, date]
+      'INSERT INTO Employee_Selection (emp_id, menu_item_id, mealType, date) VALUES (?, ?, ?, ?)',
+      [user.employeeId, menuItem.id, mealTime, date]
     );
+    const successMessage = `Menu item for ${mealTime} selected successfully.`;
+    console.log(successMessage);
+    return successMessage;
+  }
 
-    return `Menu item for ${mealTime} selected successfully.`;
-}
-
-async getRolledOutItems(mealType: string, user: any) {
-  try {
-    const today = new Date().toISOString().slice(0, 10);
-    const [rows] = await connection.query<RowDataPacket[]>(
-      `SELECT Menu_Item.name
-          FROM Rolledout_Item
-          JOIN Menu_Item ON Rolledout_Item.menu_item_id = Menu_Item.id
-          WHERE Rolledout_Item.date = ? AND Rolledout_Item.mealType = ?`,
-      [today, mealType]
-    );
-    return rows.map((row) => row.name);
-  } catch (err) {
-    console.error("Error fetching rolled out items:", err);
-    throw err;
+  async getRolledOutItems(mealType: string, user: any) {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const [rows] = await connection.query<RowDataPacket[]>(
+        `SELECT Menu_Item.name
+           FROM Rolledout_Item
+           JOIN Menu_Item ON Rolledout_Item.menu_item_id = Menu_Item.id
+           WHERE Rolledout_Item.date = ? AND Rolledout_Item.mealType = ?`,
+        [today, mealType]
+      );
+      const items = rows.map(row => row.name);
+      console.log(`Rolled out items for ${mealType}: ${items.join(', ')}`);
+      return items;
+    } catch (error) {
+      if (error instanceof Error) {
+        console.error("Error fetching rolled out items:", error.message);
+      } else {
+        console.error("Unexpected error:", error);
+      }
+      throw error;
+    }
   }
 }
-}
+
 
 export const menuRepository = new MenuRepository();

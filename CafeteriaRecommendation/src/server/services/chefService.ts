@@ -59,33 +59,43 @@ export async function getRecommendedFoodItems(callback: Function) {
   const recommendations: string[] = [];
 
   try {
-    await Promise.all(mealTimes.map(async (mealTime) => {
+    for (const mealTime of mealTimes) {
       const items = await menuRepository.getRecommendedItems(mealTime);
-      console.log(`Items recommended for ${mealTime}:`, items);
-      const message = `Top recommended items for ${mealTime}: ${items.join(', ')}`;
-      recommendations.push(message);
-    }));
-
-    console.log('All Recommendations:', recommendations);
+      recommendations.push(`Top recommended items for ${mealTime}: ${items.join(', ')}`);
+      console.log(`Retrieved recommendations for ${mealTime}: ${items.join(', ')}`);
+    }
+    console.log('All recommendations fetched:', recommendations);
     callback({ success: true, items: recommendations });
   } catch (error) {
-    console.error('Failed to retrieve recommendations:', error);
-    throw new Error('Failed to retrieve recommendations');
+    if (error instanceof Error) {
+      console.error('Error retrieving recommendations:', error.message);
+      callback({ success: false, error: 'Failed to retrieve recommendations' });
+    } else {
+      console.error('Unexpected error:', error);
+      callback({ success: false, error: 'Unexpected error occurred' });
+    }
   }
 }
 
-export async function rollOutNotification(mealTime: string, items: string[],callback:Function) {
+export async function rollOutNotification(mealTime: string, items: string[], callback: Function) {
   try {
     const message = await menuRepository.rollOutMenuItems(mealTime, items);
-    console.log('message', message);
-    if(message === 'Menu items have already been rolled out for today. Please wait until tomorrow.'){
-      return message;
-    }else{
-      notificationRepository.addNotification('employee', `Chef has rolled out ${items} for tomorrow's ${mealTime}.`, 1);
+    console.log(`Rollout message: ${message}`);
+
+    if (message.includes('already been rolled out')) {
+      callback({ success: false, message });
+    } else {
+      await notificationRepository.addNotification('employee', `Chef has rolled out ${items.join(', ')} for tomorrow's ${mealTime}.`, 1);
+      console.log(`Notification created: Chef has rolled out ${items.join(', ')} for tomorrow's ${mealTime}`);
+      callback({ success: true });
     }
-    callback({ success: true });
-  } catch (err) {
-    console.error('Error rolling out food item:', err);
-    callback({ success: false });
+  } catch (error) {
+    if (error instanceof Error) {
+      console.error('Error rolling out food item:', error.message);
+      callback({ success: false, error: 'Error rolling out food item' });
+    } else {
+      console.error('Unexpected error:', error);
+      callback({ success: false, error: 'Unexpected error occurred' });
+    }
   }
 }
