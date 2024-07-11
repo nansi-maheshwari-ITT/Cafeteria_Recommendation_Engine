@@ -26,6 +26,7 @@ export async function giveFeedback({ itemId, comment, rating }: FeedbackPayload,
 
 export async function getRolloutItems(user: any, callback: Function) {
   const mealTypes = ['breakfast', 'lunch', 'dinner'];
+  console.log("abc", user);
   try {
     const messages: string[] = [];
 

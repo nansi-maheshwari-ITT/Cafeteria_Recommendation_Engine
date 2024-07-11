@@ -278,16 +278,16 @@ class MenuRepository {
   async getRolledOutItems(mealType: string, user: any) {
     try {
       const [userAttributes] = await connection.query<RowDataPacket[]>(
-        "SELECT food_preference, spice_level, cuisine, sweet_tooth FROM employee_profile WHERE employee_id = ?",
+        "SELECT food_type, spice_level, cuisine, sweet_tooth FROM employee_profile WHERE employee_id = ?",
         [user.employeeId]
       );
+      console.log("nitin", userAttributes);
       const today = new Date().toISOString().split("T")[0];
       const [rows] = await connection.query<RowDataPacket[]>(
-        `SELECT Menu_Item.name
-           FROM Rolledout_Item ri
+        `SELECT m.name FROM Rolledout_Item ri
          INNER JOIN Menu_Item m ON ri.menu_item_id = m.id
             INNER JOIN Menu_Item_Attribute mia ON m.id = mia.menu_item_id
-            WHERE ri.date = ? AND ri.meal_time = ?
+            WHERE ri.date = ? AND ri.mealType = ?
             ORDER BY (CASE WHEN mia.food_type = ? THEN 0 ELSE 1 END),
             (CASE WHEN mia.spice_level = ? THEN 0 ELSE 1 END),
             (CASE WHEN mia.cuisine = ? THEN 0 ELSE 1 END),
@@ -295,7 +295,7 @@ class MenuRepository {
         [
           today,
           mealType,
-          userAttributes[0].food_preference,
+          userAttributes[0].food_type,
           userAttributes[0].spice_level,
           userAttributes[0].cuisine,
           userAttributes[0].sweet_tooth,

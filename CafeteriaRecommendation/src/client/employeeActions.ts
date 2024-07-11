@@ -119,17 +119,26 @@ async function updateProfile() {
 
   try {
     const questions = [
-      { question: "1) Choose one - Vegetarian, Non Vegetarian, Eggetarian: ", key: 'foodType' },
-      { question: "2) What is your preferred spice level - High, Medium, Low: ", key: 'spiceLevel' },
-      { question: "3) Which cuisine do you prefer - North Indian, South Indian, Other: ", key: 'cuisine' },
-      { question: "4) Do you enjoy sweets? (Yes/No): ", key: 'sweetTooth' }
+      { question: "1) Choose one - Vegetarian (1), Non Vegetarian (2), Eggetarian (3): ", key: 'foodType', options: ['Vegetarian', 'Non Vegetarian', 'Eggetarian'] },
+      { question: "2) What is your preferred spice level - High (1), Medium (2), Low (3): ", key: 'spiceLevel', options: ['High', 'Medium', 'Low'] },
+      { question: "3) Which cuisine do you prefer - North Indian (1), South Indian (2), Other (3): ", key: 'cuisine', options: ['North Indian', 'South Indian', 'Other'] },
+      { question: "4) Do you enjoy sweets? Yes (1), No (2): ", key: 'sweetTooth', options: ['Yes', 'No'] }
     ];
 
     const profileData: { [key: string]: string | boolean } = {};
 
     for (const item of questions) {
-      const answer = await askQuestion(item.question);
-      profileData[item.key] = item.key === 'sweetTooth' ? answer.trim().toLowerCase() === "yes" : answer.trim();
+      let validAnswer = false;
+      while (!validAnswer) {
+        const answer = await askQuestion(item.question);
+        const index = parseInt(answer.trim(), 10) - 1;
+        if (index >= 0 && index < item.options.length) {
+          profileData[item.key] = item.key === 'sweetTooth' ? item.options[index].toLowerCase() === "yes" : item.options[index];
+          validAnswer = true;
+        } else {
+          console.log("Invalid selection. Please enter a valid number.");
+        }
+      }
     }
 
     socket.emit("updateProfile", profileData, loggedInUser?.employeeId, (response: { message: any; }) => {
@@ -144,4 +153,3 @@ async function updateProfile() {
     console.error("An error occurred while updating your profile:", error);
   }
 }
-
