@@ -5,7 +5,7 @@ import { socket } from "./client";
 export async function handleAdminChoice(choice: string) {
   switch (choice) {
     case "1":
-      await addNewMenuItem();
+      await addMenuItem();
       break;
     case "2":
       await updateMenuItem();
@@ -31,34 +31,44 @@ export async function handleAdminChoice(choice: string) {
   }
 }
 
-async function addNewMenuItem() {
+async function addMenuItem() {
   try {
-    const name = await askQuestion("Enter the name of the new item: ");
-    const price = await askQuestion("Enter the price of the item: ");
-    const mealType = await askQuestion("Enter the meal type (e.g., breakfast, lunch, dinner): ");
-    const availability = await askQuestion("Is the item currently available? (true/false): ");
+    const name = await askQuestion("Enter item name: ");
+    const price = await askQuestion("Enter item price: ");
+    const mealType = await askQuestion("Enter meal type: ");
+    const availability = await askQuestion("Is the item available (true/false): ");
+    const foodType = await askQuestion("This Item comes in the category of - Vegetarian, Non Vegetarian, Eggetarian: ");
+    const spiceLevel = await askQuestion("This Item comes in the category of(basis of spice level) - High, Medium, Low: ");
+    const cuisine = await askQuestion("This Item comes in the category of - North Indian, South Indian, Other: ");
+    const sweetTooth = await askQuestion("This item is sweet tooth? (Yes/No): ");
 
-    const newItem = {
+    const menuItem = {
       name,
       price: parseFloat(price),
       mealType,
       availability: availability === "true",
     };
+    
+    const profileData = {
+      foodType: foodType.trim(),
+      spiceLevel: spiceLevel.trim(),
+      cuisine: cuisine.trim(),
+      sweetTooth: sweetTooth.trim().toLowerCase() === "yes"
+    };
 
-    socket.emit("addMenuItem", newItem, (response: any) => {
+    socket.emit("addMenuItem", menuItem, profileData, (response: any) => {
       console.log(response);
-      if (response.success) {
-        console.log("New menu item added successfully!");
-      } else {
-        console.log("Error adding item. Please try again.");
+      if(response.success == true){
+        console.log("Item added sucessfully");
+      }else{
+        console.log("Error adding item , try adding again");
       }
       promptUser("admin");
     });
   } catch (error) {
-    console.error("An error occurred while adding the menu item:", error);
+    console.error("Error adding menu item:", error);
   }
 }
-
 async function updateMenuItem() {
   try {
     const id = await askQuestion("Enter the ID of the item to update: ");

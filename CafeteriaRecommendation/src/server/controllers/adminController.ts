@@ -8,10 +8,11 @@ import {
 } from "../services/adminService";
 
 export function handleAdminActions(socket: Socket) {
-  socket.on("addMenuItem", (data, callback) => {
-    addMenuItem(data, callback);
+  socket.on('addMenuItem', (data, profileData, callback) => {
+    addMenuItem(data, profileData)
+      .then((response) => callback({success: true}))
+      .catch(() => callback({ success: false }));
   });
-
   socket.on("updateMenuItem", (data, callback) => {
     updateMenuItem(data, callback);
   });

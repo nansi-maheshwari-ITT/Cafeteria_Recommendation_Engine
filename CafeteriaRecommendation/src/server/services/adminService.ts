@@ -1,17 +1,13 @@
 import { menuRepository } from '../repositories/menuRepository';
 import { MenuItemPayload } from '../utils/types';
 
-export async function addMenuItem(data: MenuItemPayload, callback: Function) {
+export async function addMenuItem({ name, price, mealType, availability }: MenuItemPayload, profileData: any) {
   try {
-    const result = await menuRepository.addMenuItem(data);
-    if (result.success) {
-      callback({ success: true, menuItemId: result.menuItemId });
-    } else {
-      callback({ success: false, message: result.message });
-    }
-  } catch (error) {
-    console.error('Failed to add menu item:', error);
-    callback({ success: false, message: 'An unexpected error occurred.' });
+    const menuItemId = await menuRepository.addMenuItem({ name, price, mealType, availability }, profileData);
+    return { success: true, menuItemId };
+  } catch (err) {
+    console.error('Error adding menu item:', err);
+    return { success: false };
   }
 }
 
