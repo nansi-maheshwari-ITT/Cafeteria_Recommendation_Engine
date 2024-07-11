@@ -71,3 +71,14 @@ export async function viewNotification(callback: Function) {
     callback({ success: false });
   }
 }
+
+export async function updateProfile(profileData:any,employeeId:number,  callback: Function) {
+  try {
+    const profile = await menuRepository.updateProfile(profileData,employeeId);
+    console.log('profile', profile);
+    callback({ success: true, message : profile});
+  } catch (err) {
+    console.error('Error updating profile:', err);
+    callback({ success: false, message : "You Have entered wrong data. Please try again."});
+  }
+}
