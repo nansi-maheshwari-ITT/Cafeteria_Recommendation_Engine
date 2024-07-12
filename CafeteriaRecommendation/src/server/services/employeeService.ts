@@ -83,3 +83,18 @@ export async function updateProfile(profileData:any,employeeId:number,  callback
     callback({ success: false, message : "You Have entered wrong data. Please try again."});
   }
 }
+
+export async function viewDiscardedItems(callback: Function) {
+  try {
+    const discardedItems = await menuRepository.getDiscardedItems();
+    callback({ success: true, discardedItems });
+  } catch (err) {
+    console.error('Error viewing discarded items:', err);
+    callback({ success: false });
+  }
+}
+
+export async function saveDetailedFeedback(menuItem:any ,employeeId:any, question:any, feedback:any, callback: Function){
+  const data = await menuRepository.saveDetailedFeedback(menuItem,employeeId, question, feedback);
+  callback(data);
+}

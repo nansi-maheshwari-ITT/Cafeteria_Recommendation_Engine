@@ -1,5 +1,5 @@
 import { socket, loggedInUser } from "./client";
-import { promptUser, rl, askQuestion } from "../server/utils/promptUtils";
+import { promptUser, rl, askQuestion, askQuestionAsync } from "../server/utils/promptUtils";
 
 export function handleEmployeeChoice(choice: string) {
   switch (choice) {
@@ -18,7 +18,10 @@ export function handleEmployeeChoice(choice: string) {
       case "5":
         updateProfile();
         break;
-    case "6":
+        case "6":
+          viewDiscardedItems();
+          break;
+    case "7":
       rl.close();
       socket.close();
       console.log("Logging out the employee console!");
@@ -152,4 +155,51 @@ async function updateProfile() {
   } catch (error) {
     console.error("An error occurred while updating your profile:", error);
   }
+}
+
+async function viewDiscardedItems() {
+  socket.emit("viewDiscardedItems", async (response: any) => {
+    console.table(response.discardedItems);
+
+    if (response.discardedItems.length > 0) {
+      while (true) {
+        const selectedItem = await askQuestionAsync("Enter the item name to provide feedback (or type 'exit' to return to main menu): ");
+        
+        if (selectedItem.toLowerCase() === 'exit') {
+          promptUser("employee");
+          return;
+        }
+        
+        if (!response.discardedItems.includes(selectedItem)) {
+          console.log(`Item '${selectedItem}' is not in the discarded list. Please select a valid item.`);
+          continue;
+        }
+
+        const question1 = `What did you dislike about ${selectedItem}?`;
+        const question2 = `How can we improve the taste of ${selectedItem}?`;
+        const question3 = `Can you share a recipe for ${selectedItem}`;
+
+        const inputQ1 = await askQuestion(`Q1: ${question1}: `);
+        const inputQ2 = await askQuestion(`Q2: ${question2}: `);
+        const inputQ3 = await askQuestion(`Q3: ${question3}: `);
+
+        socket.emit('saveDetailedFeedback', selectedItem, loggedInUser?.employeeId, 
+          [question1, question2, question3], 
+          [inputQ1, inputQ2, inputQ3],
+          (response: any) => {
+            console.log(response);
+          }
+        );
+
+        const continueFeedback = await askQuestionAsync("Do you want to provide feedback for another item? (yes/no): ");
+        if (continueFeedback.toLowerCase() !== 'yes') {
+          break;
+        }
+      }
+    } else {
+      console.log("Chef has not asked for detailed feedback of any menu item.");
+    }
+    
+    promptUser("employee");
+  });
 }

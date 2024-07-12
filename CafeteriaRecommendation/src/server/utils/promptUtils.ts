@@ -35,14 +35,18 @@ export function promptUser(role: 'admin' | 'chef' | 'employee') {
     console.log('5. RollOut menu options for tomorrow');
     console.log("6. Check votes for tomorrow's menu");
     console.log("7. Finalize menu for tomorrow");
-    console.log('8. Exit');
+    console.log('8. See Discard Menu Item list');
+    console.log('9. Send Feedback Question for discarded items');
+    console.log('10. View Feedback response for discarded items');
+    console.log('11. Exit');
   } else if (role === 'employee') {
     console.log('1. View Menu');
     console.log('2. View Notifications');
     console.log('3. Give Feedback');
     console.log('4. Give vote for tomorrow menu');
     console.log('5. Update Profile');
-    console.log('6. Exit');
+    console.log("6. View Notification For Discarded Item And Give Feedback")
+    console.log('7. Exit');
   }
   
   rl.question('Enter your choice: ', (choice) => {

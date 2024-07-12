@@ -7,6 +7,12 @@ export interface User {
     role: 'admin' | 'chef' | 'employee';
   }
   
+  export interface DiscardMenuItem extends RowDataPacket {
+    menu_item_id: number;
+    item_name: string;
+    average_rating: number;
+    sentiment_score: number;
+  }
   
   export interface RatingComment extends RowDataPacket {
     menu_item_id: number;
