@@ -1,6 +1,7 @@
 import { feedbackRepository } from '../repositories/feedbackRepository';
 import { menuRepository } from '../repositories/menuRepository';
 import { notificationRepository } from '../repositories/notificationRepository';
+import { userRepository } from '../repositories/userRepository';
 import { FeedbackPayload } from '../utils/types';
 
 
@@ -97,4 +98,14 @@ export async function viewDiscardedItems(callback: Function) {
 export async function saveDetailedFeedback(menuItem:any ,employeeId:any, question:any, feedback:any, callback: Function){
   const data = await menuRepository.saveDetailedFeedback(menuItem,employeeId, question, feedback);
   callback(data);
+}
+
+export async function LogLogout(employeeId: number, logType:string, callback: Function) {
+  try {
+    const message = await userRepository.logLogout(employeeId, logType);
+    callback({ success: true, message });
+  } catch (err) {
+    console.error('Error logging out:', err);
+    callback({ success: false, message: 'Failed to logout!!'});
+  }
 }
