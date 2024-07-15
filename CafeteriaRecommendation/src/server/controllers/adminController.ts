@@ -2,9 +2,10 @@ import { Socket } from "socket.io";
 import {
   addMenuItem,
   updateMenuItem,
-  deleteMenuItem,
+  changeAvailability,
   viewMenu,
   checkIfItemExists,
+  removeMenuItem,
 } from "../services/adminService";
 
 export function handleAdminActions(socket: Socket) {
@@ -17,9 +18,14 @@ export function handleAdminActions(socket: Socket) {
     updateMenuItem(data, callback);
   });
 
-  socket.on("deleteMenuItem", (data, callback) => {
-    deleteMenuItem(data, callback);
+  socket.on("changeAvailability", (data, callback) => {
+    changeAvailability(data, callback);
   });
+
+  socket.on("removeMenuItem", (data, callback) => {
+    removeMenuItem(data, callback);
+  });
+
 
   socket.on("viewMenu", (callback) => {
     viewMenu(callback);

@@ -57,7 +57,7 @@ class MenuRepository {
     return rows.length > 0 ? rows[0] : null;
   }
 
-  async deleteMenuItem(id: number, availability: boolean) {
+  async changeAvailability(id: number, availability: boolean) {
     try {
       await connection.query(
         "UPDATE menu_item SET availability = ? WHERE id = ?",
@@ -70,6 +70,28 @@ class MenuRepository {
     }
   }
 
+  async removeMenuItem(id: number) {
+   
+    try {
+      // Delete related rows in menu_item_attribute
+      await connection.query(
+        "DELETE FROM menu_item_attribute WHERE menu_item_id = ?",
+        [id]
+      );
+  
+      // Delete the menu item
+      await connection.query(
+        "DELETE FROM menu_item WHERE id = ?",
+        [id]
+      );
+      return { success: true };
+    } catch (error) {
+     
+      console.error("Error while deleting menu item:", error);
+      return { success: false, message: "Unable to delete menu item." };
+    }
+  }
+  
   async viewMenu(): Promise<MenuItem[]> {
     try {
       const [rows] = await connection.query<MenuItem[]>(

@@ -24,9 +24,10 @@ export function promptUser(role: 'admin' | 'chef' | 'employee') {
     console.log('1. Add Menu Item');
     console.log('2. Update Menu Item');
     console.log('3. Delete Menu Item');
-    console.log('4. View Menu');
-    console.log('5. Generate monthly feedback report');
-    console.log('6. Exit');
+    console.log('4. Change availabilty for particular item')
+    console.log('5. View Menu');
+    console.log('6. Generate monthly feedback report');
+    console.log('7. Exit');
   } else if (role === 'chef') {
     console.log('1. View Menu');
     console.log('2. View Monthly Feedback Report');

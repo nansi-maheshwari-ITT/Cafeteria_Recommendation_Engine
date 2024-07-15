@@ -25,11 +25,26 @@ export async function updateMenuItem(data: MenuItemPayload, callback: Function) 
   }
 }
 
-export async function deleteMenuItem(id: number, callback: Function) {
+export async function changeAvailability(id: number, callback: Function) {
   try {
     const item = await menuRepository.findMenuItemById(id);
     if (item) {
-      await menuRepository.deleteMenuItem(id, false);
+      await menuRepository.changeAvailability(id, false);
+      callback({ success: true });
+    } else {
+      callback({ success: false, message: 'Menu item not found.' });
+    }
+  } catch (error) {
+    console.error('Failed to change the availability menu item:', error);
+    callback({ success: false, message: 'An unexpected error occurred.' });
+  }
+}
+
+export async function removeMenuItem(id: number, callback: Function) {
+  try {
+    const item = await menuRepository.findMenuItemById(id);
+    if (item) {
+      await menuRepository.removeMenuItem(id);
       callback({ success: true });
     } else {
       callback({ success: false, message: 'Menu item not found.' });

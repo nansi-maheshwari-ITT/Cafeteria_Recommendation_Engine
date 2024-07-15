@@ -14,12 +14,14 @@ export async function handleAdminChoice(choice: string) {
       await removeMenuItem();
       break;
     case "4":
+      await changeAvailability();
+    case "5":
       viewMenu();
       break;
-    case "5":
+    case "6":
       displayMonthlyFeedback();
       break;
-    case "6":
+    case "7":
       rl.close();
       socket.close();
       console.log("Logging out the admin console.");
@@ -34,34 +36,87 @@ export async function handleAdminChoice(choice: string) {
 async function addMenuItem() {
   try {
     const name = await askQuestion("Enter item name: ");
-    const price = await askQuestion("Enter item price: ");
-    const mealType = await askQuestion("Enter meal type: ");
-    const availability = await askQuestion("Is the item available (true/false): ");
-    const foodType = await askQuestion("This Item comes in the category of - Vegetarian, Non Vegetarian, Eggetarian: ");
-    const spiceLevel = await askQuestion("This Item comes in the category of(basis of spice level) - High, Medium, Low: ");
-    const cuisine = await askQuestion("This Item comes in the category of - North Indian, South Indian, Other: ");
-    const sweetTooth = await askQuestion("This item is sweet tooth? (Yes/No): ");
+
+    let price: number;
+    while (true) {
+      const priceInput = await askQuestion("Enter item price: ");
+      price = parseFloat(priceInput);
+      if (!isNaN(price)) break;
+      console.log("Invalid price. Please enter a valid number.");
+    }
+
+    let mealType: string;
+    const validMealTypes = ["breakfast", "lunch", "dinner"];
+    while (true) {
+      mealType = (await askQuestion("Enter meal type (breakfast, lunch, dinner): ")).trim().toLowerCase();
+      if (validMealTypes.includes(mealType)) break;
+      console.log("Invalid meal type. Please enter 'breakfast', 'lunch', or 'dinner'.");
+    }
+
+    let availability: boolean;
+    while (true) {
+      const availabilityInput = (await askQuestion("Is the item available (true/false): ")).trim().toLowerCase();
+      if (availabilityInput === "true" || availabilityInput === "false") {
+        availability = availabilityInput === "true";
+        break;
+      }
+      console.log("Invalid input. Please enter 'true' or 'false'.");
+    }
+
+    let foodType: string;
+    const validFoodTypes = ["vegetarian", "non vegetarian", "eggetarian","other"];
+    while (true) {
+      foodType = (await askQuestion("This Item comes in the category of - Vegetarian, Non Vegetarian, Eggetarian,other: ")).trim().toLowerCase();
+      if (validFoodTypes.includes(foodType)) break;
+      console.log("Invalid food type. Please enter 'Vegetarian', 'Non Vegetarian', or 'Eggetarian'.");
+    }
+
+    let spiceLevel: string;
+    const validSpiceLevels = ["high", "medium", "low"];
+    while (true) {
+      spiceLevel = (await askQuestion("This Item comes in the category of(basis of spice level) - High, Medium, Low: ")).trim().toLowerCase();
+      if (validSpiceLevels.includes(spiceLevel)) break;
+      console.log("Invalid spice level. Please enter 'High', 'Medium', or 'Low'.");
+    }
+
+    let cuisine: string;
+    const validCuisines = ["north indian", "south indian", "other"];
+    while (true) {
+      cuisine = (await askQuestion("This Item comes in the category of - North Indian, South Indian, Other: ")).trim().toLowerCase();
+      if (validCuisines.includes(cuisine)) break;
+      console.log("Invalid cuisine. Please enter 'North Indian', 'South Indian', or 'Other'.");
+    }
+
+    let sweetTooth: boolean;
+    while (true) {
+      const sweetToothInput = (await askQuestion("This item is sweet tooth? (Yes/No): ")).trim().toLowerCase();
+      if (sweetToothInput === "yes" || sweetToothInput === "no") {
+        sweetTooth = sweetToothInput === "yes";
+        break;
+      }
+      console.log("Invalid input. Please enter 'Yes' or 'No'.");
+    }
 
     const menuItem = {
       name,
-      price: parseFloat(price),
+      price,
       mealType,
-      availability: availability === "true",
+      availability,
     };
-    
+
     const profileData = {
-      foodType: foodType.trim(),
-      spiceLevel: spiceLevel.trim(),
-      cuisine: cuisine.trim(),
-      sweetTooth: sweetTooth.trim().toLowerCase() === "yes"
+      foodType,
+      spiceLevel,
+      cuisine,
+      sweetTooth,
     };
 
     socket.emit("addMenuItem", menuItem, profileData, (response: any) => {
       console.log(response);
-      if(response.success == true){
-        console.log("Item added sucessfully");
-      }else{
-        console.log("Error adding item , try adding again");
+      if (response.success === true) {
+        console.log("Item added successfully.");
+      } else {
+        console.log("Error adding item. Please try again.");
       }
       promptUser("admin");
     });
@@ -69,6 +124,7 @@ async function addMenuItem() {
     console.error("Error adding menu item:", error);
   }
 }
+
 async function updateMenuItem() {
   try {
     const id = await askQuestion("Enter the ID of the item to update: ");
@@ -108,12 +164,31 @@ async function updateMenuItem() {
   }
 }
 
+async function changeAvailability() {
+  try {
+    const id = await askQuestion("Enter the ID of the item to change availability: ");
+    const itemId = parseInt(id);
+
+    socket.emit("changeAvailability", itemId, (response: any) => {
+      console.log(response);
+      if (response.success) {
+        console.log("Menu item deleted successfully!");
+      } else {
+        console.log("Error deleting item. Please try again.");
+      }
+      promptUser("admin");
+    });
+  } catch (error) {
+    console.error("An error occurred while changing availability the menu item:", error);
+  }
+}
+
 async function removeMenuItem() {
   try {
     const id = await askQuestion("Enter the ID of the item to delete: ");
     const itemId = parseInt(id);
 
-    socket.emit("deleteMenuItem", itemId, (response: any) => {
+    socket.emit("removeMenuItem", itemId, (response: any) => {
       console.log(response);
       if (response.success) {
         console.log("Menu item deleted successfully!");
@@ -126,6 +201,7 @@ async function removeMenuItem() {
     console.error("An error occurred while deleting the menu item:", error);
   }
 }
+
 
 function viewMenu() {
   socket.emit("viewMenu", (response: any) => {
