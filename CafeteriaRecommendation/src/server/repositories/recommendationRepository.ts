@@ -35,12 +35,23 @@ class RecommendationRepository {
     menuItemId: number,
     sentiment: string,
     averageRating: number,
-    score: number
+    score: number,
+    positiveWords: string,
+    negativeWords: string,
+    neutralWords: string
   ) {
     try {
       await connection.query(
-        "UPDATE Sentiment SET sentiment = ?, average_rating = ?, sentiment_score = ?, date_calculated = CURDATE() WHERE menu_item_id = ?",
-        [sentiment, averageRating.toFixed(2), score, menuItemId]
+        "UPDATE Sentiment SET sentiment = ?, average_rating = ?, sentiment_score = ?,positiveWords = ?, negativeWords = ?, neutralWords = ?, date_calculated = CURDATE() WHERE menu_item_id = ?",
+        [
+          sentiment,
+          averageRating.toFixed(2),
+          score,
+          positiveWords,
+          negativeWords,
+          neutralWords,
+          menuItemId,
+        ]
       );
     } catch (error) {
       console.error(`Failed to update sentiments: ${error}`);
@@ -52,13 +63,24 @@ class RecommendationRepository {
     menuItemId: number,
     sentiment: string,
     averageRating: number,
-    score: number
+    score: number,
+    positiveWords: string,
+    negativeWords: string,
+    neutralWords: string
   ) {
     console.log(menuItemId, sentiment, averageRating, score);
     try {
       await connection.query(
-        "INSERT INTO Sentiment (menu_item_id, sentiment, average_rating, sentiment_score, date_calculated) VALUES (?, ?, ?, ?, CURDATE())",
-        [menuItemId, sentiment, averageRating.toFixed(2), score]
+        "INSERT INTO Sentiment (menu_item_id, sentiment, average_rating, sentiment_score, positiveWords = ?, negativeWords = ?, neutralWords = ?, date_calculated) VALUES (?, ?, ?, ?, CURDATE())",
+        [
+          menuItemId,
+          sentiment,
+          averageRating.toFixed(2),
+          score,
+          positiveWords,
+          negativeWords,
+          neutralWords,
+        ]
       );
     } catch (error) {
       console.error(`Failed to insert sentiments: ${error}`);
@@ -73,39 +95,51 @@ class RecommendationRepository {
         "SELECT food_type, spice_level, cuisine, sweet_tooth FROM employee_profile WHERE employee_id = ?",
         [user.employeeId]
       );
-
-      console.log("todcay:01", today);
-      const [rows] = await connection.query<RowDataPacket[]>(
-        `SELECT m.name
-                FROM Rolledout_Item ri
-                INNER JOIN Menu_Item m ON ri.menu_item_id = m.id
-                INNER JOIN Menu_Item_Attribute mia ON m.id = mia.menu_item_id
-                WHERE ri.date = ? AND ri.mealType= ?
-                ORDER BY (CASE WHEN mia.food_type = ? THEN 0 ELSE 1 END),
-                (CASE WHEN mia.spice_level = ? THEN 0 ELSE 1 END),
-                (CASE WHEN mia.cuisine = ? THEN 0 ELSE 1 END),
-                (CASE WHEN mia.sweet_tooth = ? THEN 0 ELSE 1 END) DESC`,
-        [
-          today,
-          mealType,
-          userAttributes[0].food_type,
-          userAttributes[0].spice_level,
-          userAttributes[0].cuisine,
-          userAttributes[0].sweet_tooth,
-        ]
-      );
-      console.log("rows:01", rows);
+  
+      let rows: RowDataPacket[];
+  
+      if (userAttributes.length > 0) {
+        [rows] = await connection.query<RowDataPacket[]>(
+          `SELECT m.name
+           FROM Rolledout_Item ri
+           INNER JOIN Menu_Item m ON ri.menu_item_id = m.id
+           INNER JOIN Menu_Item_Attribute mia ON m.id = mia.menu_item_id
+           WHERE ri.date = ? AND ri.mealType = ?
+           ORDER BY (CASE WHEN mia.food_type = ? THEN 0 ELSE 1 END),
+                    (CASE WHEN mia.spice_level = ? THEN 0 ELSE 1 END),
+                    (CASE WHEN mia.cuisine = ? THEN 0 ELSE 1 END),
+                    (CASE WHEN mia.sweet_tooth = ? THEN 0 ELSE 1 END) DESC`,
+          [
+            today,
+            mealType,
+            userAttributes[0].food_type,
+            userAttributes[0].spice_level,
+            userAttributes[0].cuisine,
+            userAttributes[0].sweet_tooth,
+          ]
+        );
+      } else {
+        [rows] = await connection.query<RowDataPacket[]>(
+          `SELECT m.name
+           FROM Rolledout_Item ri
+           INNER JOIN Menu_Item m ON ri.menu_item_id = m.id
+           WHERE ri.date = ? AND ri.mealType = ?`,
+          [today, mealType]
+        );
+      }
+  
       return rows.map((row) => row.name);
     } catch (err) {
       console.error("Error fetching rolled out items:", err);
       throw err;
     }
   }
+  
 
   async getRecommendations(): Promise<MenuItem[]> {
     try {
       const query = `
-            SELECT m.*, s.sentiment, s.average_rating, s.sentiment_score 
+            SELECT m.*, s.sentiment, s.average_rating, s.sentiment_score, s.positiveWords, s.negativeWords, s.neutralWords
             FROM menu_item m 
             LEFT JOIN Sentiment s ON m.id = s.menu_item_id 
             ORDER BY s.average_rating DESC 
@@ -113,10 +147,11 @@ class RecommendationRepository {
       const [menuItems] = await connection.query<MenuItem[]>(query);
       return menuItems;
     } catch (error) {
-      console.error(`Failed to insert sentiments: ${error}`);
-      throw new Error("Error inserting sentiments.");
+      console.error(`Failed to fetch recommendations: ${error}`);
+      throw new Error("Error fetching recommendations.");
     }
   }
+  
 
   async getRecommendedItems(mealTime: string): Promise<string[]> {
     const [recommendedItems] = await connection.query<RowDataPacket[]>(

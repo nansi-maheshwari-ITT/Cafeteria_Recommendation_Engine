@@ -16,27 +16,21 @@ const intensifierSet = new Set(INTENSIFIERS);
 export async function updateSentimentScores() {
   try {
     const recentComments = await fetchRecentComments();
-    console.log("recentComments", recentComments);
     const commentsGroupedByMenuItem = groupCommentsByMenuItem(recentComments);
-    console.log("commentsGroupedByMenuItem", commentsGroupedByMenuItem);
-
     for (const menuItemId in commentsGroupedByMenuItem) {
       const comments = commentsGroupedByMenuItem[menuItemId];
-      console.log("comments", comments);
-      const { sentiment, score } = performSentimentAnalysis(comments);
-      console.log("sentiment", sentiment);
-      console.log("score", score);
+      const { sentiment, score, matchedWords } =
+        performSentimentAnalysis(comments);
       const ratings = recentComments
         .filter((comment) => comment.menu_item_id === parseInt(menuItemId, 10))
         .map((comment) => comment.rating);
-      console.log("ratings", ratings);
       const averageRating = calculateAverageRating(ratings);
-      console.log("averageRating", averageRating);
       await storeSentimentAnalysis(
         parseInt(menuItemId, 10),
         sentiment,
         averageRating,
-        score
+        score,
+        matchedWords
       );
     }
     console.log("Sentiment Scores Updated....");
@@ -45,29 +39,54 @@ export async function updateSentimentScores() {
   }
 }
 
-function performSentimentAnalysis(comments: string[]): { sentiment: string; score: number } {
+function performSentimentAnalysis(comments: string[]): {
+  sentiment: string;
+  score: number;
+  matchedWords: {
+    positive: string[];
+    negative: string[];
+    neutral: string[];
+  };
+} {
   let positiveCount = 0;
   let negativeCount = 0;
   let neutralCount = 0;
+  const matchedWords = {
+    positive: [] as string[],
+    negative: [] as string[],
+    neutral: [] as string[],
+  };
 
   comments.forEach((comment) => {
     const result = analyzeComment(comment);
     positiveCount += result.positiveCount;
     negativeCount += result.negativeCount;
     neutralCount += result.neutralCount;
+    matchedWords.positive.push(...result.matchedPositiveWords);
+    matchedWords.negative.push(...result.matchedNegativeWords);
+    matchedWords.neutral.push(...result.matchedNeutralWords);
   });
 
-  return calculateOverallSentiment(positiveCount, negativeCount, neutralCount);
+  return {
+    ...calculateOverallSentiment(positiveCount, negativeCount, neutralCount),
+    matchedWords,
+  };
 }
 
 function analyzeComment(comment: string): {
   positiveCount: number;
   negativeCount: number;
   neutralCount: number;
+  matchedPositiveWords: string[];
+  matchedNegativeWords: string[];
+  matchedNeutralWords: string[];
 } {
   let positiveCount = 0;
   let negativeCount = 0;
   let neutralCount = 0;
+  const matchedPositiveWords: string[] = [];
+  const matchedNegativeWords: string[] = [];
+  const matchedNeutralWords: string[] = [];
 
   const words = comment.toLowerCase().split(/\W+/);
   let adjustedWords = [...words];
@@ -78,27 +97,47 @@ function analyzeComment(comment: string): {
       if (positiveSet.has(nextWord)) {
         negativeCount += 1;
         adjustedWords[index + 1] = "";
+        matchedNegativeWords.push(nextWord);
       } else if (negativeSet.has(nextWord)) {
         positiveCount += 1;
         adjustedWords[index + 1] = "";
+        matchedPositiveWords.push(nextWord);
       }
     } else if (intensifierSet.has(word) && index < words.length - 1) {
       const nextWord = words[index + 1];
       if (positiveSet.has(nextWord)) {
         positiveCount += 2;
+        matchedPositiveWords.push(word, nextWord);
       } else if (negativeSet.has(nextWord)) {
         negativeCount += 2;
+        matchedNegativeWords.push(word, nextWord);
       }
     }
   });
 
   adjustedWords.forEach((word) => {
-    if (positiveSet.has(word)) positiveCount += 1;
-    if (negativeSet.has(word)) negativeCount += 1;
-    if (neutralSet.has(word)) neutralCount += 1;
+    if (positiveSet.has(word)) {
+      positiveCount += 1;
+      matchedPositiveWords.push(word);
+    }
+    if (negativeSet.has(word)) {
+      negativeCount += 1;
+      matchedNegativeWords.push(word);
+    }
+    if (neutralSet.has(word)) {
+      neutralCount += 1;
+      matchedNeutralWords.push(word);
+    }
   });
 
-  return { positiveCount, negativeCount, neutralCount };
+  return {
+    positiveCount,
+    negativeCount,
+    neutralCount,
+    matchedPositiveWords,
+    matchedNegativeWords,
+    matchedNeutralWords,
+  };
 }
 
 function calculateOverallSentiment(
@@ -136,7 +175,6 @@ async function fetchRecentComments(): Promise<RatingComment[]> {
     new Date(new Date().setMonth(new Date().getMonth() - 3)),
     "yyyy-MM-dd"
   );
-  console.log("threeMonthsAgo", threeMonthsAgo);
   return await recommendationRepository.getRecentComments(threeMonthsAgo);
 }
 
@@ -156,26 +194,36 @@ async function storeSentimentAnalysis(
   menuItemId: number,
   sentiment: string,
   averageRating: number,
-  score: number
+  score: number,
+  matchedWords: { positive: string[]; negative: string[]; neutral: string[] }
 ) {
   const existingSentiment = await recommendationRepository.getExistingSentiment(
     menuItemId
   );
-  console.log("existingSentiment", existingSentiment);
+
+  const positiveWords = matchedWords.positive.join(", ");
+  const negativeWords = matchedWords.negative.join(", ");
+  const neutralWords = matchedWords.neutral.join(", ");
 
   if (existingSentiment.length > 0) {
     await recommendationRepository.updateSentiments(
       menuItemId,
       sentiment,
       averageRating,
-      score
+      score,
+      positiveWords,
+      negativeWords,
+      neutralWords
     );
   } else {
     await recommendationRepository.insertSentiments(
       menuItemId,
       sentiment,
       averageRating,
-      score
+      score,
+      positiveWords,
+      negativeWords,
+      neutralWords
     );
   }
 }

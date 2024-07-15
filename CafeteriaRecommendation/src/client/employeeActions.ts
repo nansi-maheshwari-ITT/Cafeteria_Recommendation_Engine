@@ -1,5 +1,6 @@
 import { socket, loggedInUser } from "./client";
 import { promptUser, rl, askQuestion, askQuestionAsync } from "../server/utils/promptUtils";
+import { MenuItem } from "../server/utils/types";
 
 export function handleEmployeeChoice(choice: string) {
   switch (choice) {
@@ -7,20 +8,20 @@ export function handleEmployeeChoice(choice: string) {
       viewMenu();
       break;
     case "2":
-      viewNotification();  
+      viewNotification();
       break;
-      case "3":
+    case "3":
       giveFeedback();
       break;
     case "4":
       voteForTomorrowMenu();
       break;
-      case "5":
-        updateProfile();
-        break;
-        case "6":
-          viewDiscardedItems();
-          break;
+    case "5":
+      updateProfile();
+      break;
+    case "6":
+      viewDiscardedItems();
+      break;
     case "7":
       logLogout();
       rl.close();
@@ -35,87 +36,146 @@ export function handleEmployeeChoice(choice: string) {
 }
 
 function viewMenu(): void {
-  socket.emit("viewMenu", (response: { menuItems: any[] }) => {
-    console.table(response.menuItems);
+  try {
+    socket.emit("viewMenu", (response:any) => {
+      if (response.success) {
+        const formattedMenuItems = response.menuItems.map(
+          (item: MenuItem) => ({
+            id: item.id,
+            name: item.name,
+            price: item.price,
+            mealType: item.mealType,
+            availability: item.availability ? "Available" : "Not available",
+          })
+        );
+        console.table(formattedMenuItems);
+      } else {
+        console.log("Unable to retrieve menu items at this time.");
+      }
+      promptUser("employee");
+    });
+  } catch (error) {
+    console.error("Error viewing menu:", error);
     promptUser("employee");
-  });
+  }
 }
 
 function giveFeedback(): void {
-  rl.question("Enter the item ID you want to give feedback on: ", (itemId) => {
-    const id = parseInt(itemId);
-
-    socket.emit("checkIfItemExists", id, (exists: boolean) => {
-      if (exists) {
-        rl.question("Provide your comments: ", (comment) => {
-          rl.question("Rate the item (1-5): ", (rating) => {
-            socket.emit(
-              "giveFeedback",
-              {
-                itemId: id,
-                comment,
-                rating: parseInt(rating),
-              },
-              (response: any) => {
-                console.log(response);
-                promptUser("employee");
-              }
-            );
-          });
-        });
-      } else {
-        console.log(`No menu item found with ID ${itemId}.`);
+  try {
+    rl.question("Enter the item ID you want to give feedback on: ", (itemId) => {
+      const id = parseInt(itemId);
+      if (isNaN(id)) {
+        console.log("Invalid item ID. Please enter a valid number.");
         promptUser("employee");
+        return;
       }
+
+      socket.emit("checkIfItemExists", id, (exists: boolean) => {
+        if (exists) {
+          rl.question("Provide your comments: ", (comment) => {
+            rl.question("Rate the item (1-5): ", (rating) => {
+              const ratingValue = parseInt(rating);
+              if (isNaN(ratingValue) || ratingValue < 1 || ratingValue > 5) {
+                console.log("Invalid rating. Please enter a number between 1 and 5.");
+                promptUser("employee");
+                return;
+              }
+
+              socket.emit(
+                "giveFeedback",
+                {
+                  itemId: id,
+                  comment,
+                  rating: ratingValue,
+                },
+                (response: any) => {
+                  console.log(response.message);
+                  promptUser("employee");
+                }
+              );
+            });
+          });
+        } else {
+          console.log(`No menu item found with ID ${itemId}.`);
+          promptUser("employee");
+        }
+      });
     });
-  });
+  } catch (error) {
+    console.error("Error giving feedback:", error);
+    promptUser("employee");
+  }
 }
 
 function voteForTomorrowMenu(): void {
-  socket.emit("getRolloutItems", loggedInUser, (response: any) => {
-    console.log(response);
-    if (loggedInUser) {
-      if( response.status!=='empty'){
-        gatherVotesForMenu(loggedInUser.name);
-      }
-      else{
+  try {
+    socket.emit("getRolloutItems", loggedInUser, (response: any) => {
+      if (loggedInUser) {
+        if (response.status !== 'empty') {
+          gatherVotesForMenu(loggedInUser.name);
+        } else {
+          console.log("No items available for voting.");
+          promptUser("employee");
+        }
+      } else {
+        console.log("User is not logged in.");
         promptUser("employee");
       }
-    } else {
-      console.log("User is not logged in");
-      promptUser("employee");
-    }
-  });
+    });
+  } catch (error) {
+    console.error("Error voting for tomorrow's menu:", error);
+    promptUser("employee");
+  }
 }
 
 async function gatherVotesForMenu(username: string) {
   const mealTypes = ["breakfast", "lunch", "dinner"];
-  for (const mealType of mealTypes) {
-    let item: string;
-    let exists = "false";
-    do {
-      item = await askQuestion(`Please select one item for ${mealType}: `);
-      await new Promise<void>((resolve) => {
-        socket.emit("submitVote", item, mealType, username, (result: string) => {
-          exists = result;
-          console.log(exists);
-          resolve();
+  try {
+    for (const mealType of mealTypes) {
+      let item: string;
+      let exists = "false";
+      do {
+        item = await askQuestion(`Please select one item for ${mealType}: `);
+        await new Promise<void>((resolve) => {
+          socket.emit("submitVote", item, mealType, username, (result: string) => {
+            exists = result;
+            if (exists === "false") {
+              console.log(`Item '${item}' does not exist. Please select a valid item.`);
+            }
+            resolve();
+          });
         });
-      });
-    } while (!exists);
+      } while (!exists);
+    }
+    console.log("Your responses have been recorded successfully.\n");
+  } catch (error) {
+    console.error("Error gathering votes:", error);
   }
-  console.log("Your responses have been recorded successfully.\n");
   promptUser("employee");
 }
 
-
-
-
 function viewNotification() {
-  socket.emit("viewNotification", (response: any) => {
-    console.table(response.notification);
+  try {
+    socket.emit("viewNotification", (response: any) => {
+      if (response.success && response.notification && response.notification.length > 0) {
+        // Format the notification data
+        const formattedNotification = response.notification.map((item: any) => ({
+          message: item.message,
+          notification_date: item.notification_date
+        }));
+
+        console.table(formattedNotification);
+      } else if (response.success) {
+        console.log("No notifications found.");
+      } else {
+        console.log("Failed to retrieve notifications.");
+      }
+      promptUser("employee");
+    });
+  } catch (error) {
+    console.error("Error viewing notifications:", error);
     promptUser("employee");
-  });
+  }
 }
 
 async function updateProfile() {
@@ -155,60 +215,69 @@ async function updateProfile() {
 
   } catch (error) {
     console.error("An error occurred while updating your profile:", error);
+    promptUser("employee");
   }
 }
 
 async function viewDiscardedItems() {
-  socket.emit("viewDiscardedItems", async (response: any) => {
-    console.table(response.discardedItems);
+  try {
+    socket.emit("viewDiscardedItems", async (response: any) => {
+      if (response.discardedItems && response.discardedItems.length > 0) {
+        console.table(response.discardedItems);
 
-    if (response.discardedItems.length > 0) {
-      while (true) {
-        const selectedItem = await askQuestionAsync("Enter the item name to provide feedback (or type 'exit' to return to main menu): ");
-        
-        if (selectedItem.toLowerCase() === 'exit') {
-          promptUser("employee");
-          return;
-        }
-        
-        if (!response.discardedItems.includes(selectedItem)) {
-          console.log(`Item '${selectedItem}' is not in the discarded list. Please select a valid item.`);
-          continue;
-        }
+        while (true) {
+          const selectedItem = await askQuestionAsync("Enter the item name to provide feedback (or type 'exit' to return to main menu): ");
 
-        const question1 = `What did you dislike about ${selectedItem}?`;
-        const question2 = `How can we improve the taste of ${selectedItem}?`;
-        const question3 = `Can you share a recipe for ${selectedItem}`;
-
-        const inputQ1 = await askQuestion(`Q1: ${question1}: `);
-        const inputQ2 = await askQuestion(`Q2: ${question2}: `);
-        const inputQ3 = await askQuestion(`Q3: ${question3}: `);
-
-        socket.emit('saveDetailedFeedback', selectedItem, loggedInUser?.employeeId, 
-          [question1, question2, question3], 
-          [inputQ1, inputQ2, inputQ3],
-          (response: any) => {
-            console.log(response);
+          if (selectedItem.toLowerCase() === 'exit') {
+            promptUser("employee");
+            return;
           }
-        );
 
-        const continueFeedback = await askQuestionAsync("Do you want to provide feedback for another item? (yes/no): ");
-        if (continueFeedback.toLowerCase() !== 'yes') {
-          break;
+          if (!response.discardedItems.some((item: any) => item.item_name === selectedItem)) {
+            console.log(`Item '${selectedItem}' is not in the discarded list. Please select a valid item.`);
+            continue;
+          }
+
+          const question1 = `What did you dislike about ${selectedItem}?`;
+          const question2 = `How can we improve the taste of ${selectedItem}?`;
+          const question3 = `Can you share a recipe for ${selectedItem}`;
+
+          const inputQ1 = await askQuestion(`Q1: ${question1}: `);
+          const inputQ2 = await askQuestion(`Q2: ${question2}: `);
+          const inputQ3 = await askQuestion(`Q3: ${question3}: `);
+
+          socket.emit('saveDetailedFeedback', selectedItem, loggedInUser?.employeeId,
+            [question1, question2, question3],
+            [inputQ1, inputQ2, inputQ3],
+            (response: any) => {
+              console.log(response.message);
+            }
+          );
+
+          const continueFeedback = await askQuestionAsync("Do you want to provide feedback for another item? (yes/no): ");
+          if (continueFeedback.toLowerCase() !== 'yes') {
+            break;
+          }
         }
+      } else {
+        console.log("Chef has not asked for detailed feedback of any menu item.");
       }
-    } else {
-      console.log("Chef has not asked for detailed feedback of any menu item.");
-    }
-    
+      promptUser("employee");
+    });
+  } catch (error) {
+    console.error("Error viewing discarded items:", error);
     promptUser("employee");
-  });
+  }
 }
 
 async function logLogout() {
-  if(loggedInUser){
-    socket.emit("LogLogout", loggedInUser.employeeId, "logout", (response: any) => {
-      console.log(response.message);
-    });
+  try {
+    if (loggedInUser) {
+      socket.emit("LogLogout", loggedInUser.employeeId, "logout", (response: any) => {
+        console.log(response.message);
+      });
+    }
+  } catch (error) {
+    console.error("Error logging out:", error);
   }
 }

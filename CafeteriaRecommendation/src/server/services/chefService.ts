@@ -29,12 +29,30 @@ export async function getRecommendation(callback: Function) {
   try {
     await updateSentimentScores();
     const menuItems = await recommendationRepository.getRecommendations();
-    callback({ success: true, menuItems });
+    
+    // Add formatted sentiment comments
+    const formattedMenuItems = menuItems.map(item => {
+      const positiveComments = item.positiveWords ? `Positive: ${item.positiveWords}` : '';
+      const negativeComments = item.negativeWords ? `Negative: ${item.negativeWords}` : '';
+      const neutralComments = item.neutralWords ? `Neutral: ${item.neutralWords}` : '';
+
+      const sentimentComments = [positiveComments, negativeComments, neutralComments]
+        .filter(comment => comment !== '')
+        .join(', ');
+
+      return {
+        ...item,
+        sentimentComments
+      };
+    });
+
+    callback({ success: true, menuItems: formattedMenuItems });
   } catch (error) {
     console.error('Recommendation retrieval error:', error);
     callback({ success: false, message: 'Unable to retrieve recommendations at this time.' });
   }
 }
+
 
 export async function viewMonthlyFeedback(callback: Function) {
   try {

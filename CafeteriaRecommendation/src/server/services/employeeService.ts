@@ -19,7 +19,7 @@ export async function viewMenu(callback: Function) {
 export async function giveFeedback({ itemId, comment, rating }: FeedbackPayload, callback: Function) {
   try {
     await feedbackRepository.giveFeedback({ itemId, comment, rating });
-    callback({ success: true });
+    callback({ success: true,message:'Feedback added successfully' });
   } catch (err) {
     console.error('Error giving feedback:', err);
     callback({ success: false });

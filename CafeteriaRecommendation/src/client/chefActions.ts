@@ -5,6 +5,7 @@ import {
   promptUser,
   rl,
 } from "../server/utils/promptUtils";
+import { MenuItem } from "../server/utils/types";
 import { loggedInUser, socket } from "./client";
 
 export async function handleChefChoice(choice: string) {
@@ -90,14 +91,38 @@ async function viewFeedbackForItem() {
 
 function viewRecommendations() {
   socket.emit("getRecommendation", (response: any) => {
-    console.table(response.menuItems);
+    if (response.success) {
+      const tableData = response.menuItems.map((item: any) => ({
+        Name: item.name,
+        Rating: item.average_rating,
+        Sentiment: item.sentiment,
+        Score: item.sentiment_score,
+        SentimentComments: item.sentimentComments,
+      }));
+      console.table(tableData);
+    } else {
+      console.error(response.message);
+    }
     promptUser("chef");
   });
 }
 
 function viewMenu() {
   socket.emit("getMenu", (response: any) => {
-    console.table(response.menuItems);
+    if (response.success) {
+      const formattedMenuItems = response.menuItems.map(
+        (item: MenuItem) => ({
+          id: item.id,
+          name: item.name,
+          price: item.price,
+          mealType: item.mealType,
+          availability: item.availability ? "Available" : "Not available",
+        })
+      );
+      console.table(formattedMenuItems);
+    } else {
+      console.log("Unable to retrieve menu items at this time.");
+    }
     promptUser("chef");
   });
 }
@@ -256,7 +281,12 @@ async function selectMeal() {
 async function viewDiscardList() {
   socket.emit("viewDiscardList", (response: any) => {
     if (response.discardMenuItems && response.discardMenuItems.length > 0) {
-      console.table(response.discardMenuItems, ["id", "name", "average_rating", "sentiment_score"]);
+      console.table(response.discardMenuItems, [
+        "id",
+        "name",
+        "average_rating",
+        "sentiment_score",
+      ]);
       askDiscardItemToRemove(response.discardMenuItems);
     } else {
       console.log("No items are scheduled for discard.");
@@ -267,7 +297,7 @@ async function viewDiscardList() {
 
 async function askDiscardItemToRemove(discardMenuItems: any[]) {
   const itemId = await askQuestionAsync("Enter the ID of the item to remove: ");
-  const item = discardMenuItems.find(item => item.id === parseInt(itemId));
+  const item = discardMenuItems.find((item) => item.id === parseInt(itemId));
   if (item) {
     removeFoodItem(item.name);
   } else {
@@ -326,23 +356,28 @@ function submitFeedbackQuestion(item: string, question: string) {
 }
 
 async function checkFeedbackForDiscardItems() {
-  const itemName = await askQuestionAsync("Enter the item name to retrieve feedback: ");
-  
+  const itemName = await askQuestionAsync(
+    "Enter the item name to retrieve feedback: "
+  );
+
   socket.emit("fetchDetailedFeedback", itemName, (response: any) => {
     if (response.feedback.length > 0) {
       console.log("Feedback for:", itemName);
 
-      const feedbackByQuestion = response.feedback.reduce((acc: any, feedback: any) => {
-        if (!acc[feedback.question]) {
-          acc[feedback.question] = [];
-        }
-        acc[feedback.question].push(feedback.response);
-        return acc;
-      }, {});
+      const feedbackByQuestion = response.feedback.reduce(
+        (acc: any, feedback: any) => {
+          if (!acc[feedback.question]) {
+            acc[feedback.question] = [];
+          }
+          acc[feedback.question].push(feedback.response);
+          return acc;
+        },
+        {}
+      );
 
       for (const question in feedbackByQuestion) {
         console.log(`Q: ${question}`);
-        console.log(`A: ${feedbackByQuestion[question].join(', ')}`);
+        console.log(`A: ${feedbackByQuestion[question].join(", ")}`);
         console.log("--------");
       }
     } else {
