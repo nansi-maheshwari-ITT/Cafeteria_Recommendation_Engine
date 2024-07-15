@@ -1,5 +1,7 @@
+import { feedbackRepository } from '../repositories/feedbackRepository';
 import { menuRepository } from '../repositories/menuRepository';
 import { notificationRepository } from '../repositories/notificationRepository';
+import { recommendationRepository } from '../repositories/recommendationRepository';
 import { updateSentimentScores } from './recommendationService';
 
 export async function getMenu(callback: Function) {
@@ -26,7 +28,7 @@ export async function recommendMenu(itemIds: number[], callback: Function) {
 export async function getRecommendation(callback: Function) {
   try {
     await updateSentimentScores();
-    const menuItems = await menuRepository.getRecommendations();
+    const menuItems = await recommendationRepository.getRecommendations();
     callback({ success: true, menuItems });
   } catch (error) {
     console.error('Recommendation retrieval error:', error);
@@ -36,7 +38,7 @@ export async function getRecommendation(callback: Function) {
 
 export async function viewMonthlyFeedback(callback: Function) {
   try {
-    const feedbackReport = await menuRepository.viewMonthlyFeedback();
+    const feedbackReport = await feedbackRepository.viewMonthlyFeedback();
     callback({ success: true, feedbackReport });
   } catch (error) {
     console.error('Error fetching monthly feedback:', error);
@@ -46,7 +48,7 @@ export async function viewMonthlyFeedback(callback: Function) {
 
 export async function getFeedbackById(itemId: number, callback: Function) {
   try {
-    const feedback = await menuRepository.getFeedbackById(itemId);
+    const feedback = await feedbackRepository.getFeedbackById(itemId);
     callback({ success: true, feedback });
   } catch (error) {
     console.error('Error fetching feedback by ID:', error);
@@ -60,7 +62,7 @@ export async function getRecommendedFoodItems(callback: Function) {
 
   try {
     for (const mealTime of mealTimes) {
-      const items = await menuRepository.getRecommendedItems(mealTime);
+      const items = await recommendationRepository.getRecommendedItems(mealTime);
       recommendations.push(`Top recommended items for ${mealTime}: ${items.join(', ')}`);
       console.log(`Retrieved recommendations for ${mealTime}: ${items.join(', ')}`);
     }
@@ -79,7 +81,7 @@ export async function getRecommendedFoodItems(callback: Function) {
 
 export async function rollOutNotification(mealTime: string, items: string[], callback: Function) {
   try {
-    const message = await menuRepository.rollOutMenuItems(mealTime, items);
+    const message = await recommendationRepository.rollOutMenuItems(mealTime, items);
     console.log(`Rollout message: ${message}`);
 
     if (message.includes('already been rolled out')) {
@@ -158,9 +160,9 @@ export async function viewDiscardList(callback: Function) {
 } 
 
 export async function fetchDetailedFeedback(menu_item_name: any, callback: Function) {
-  console.log("nitin_menu_item_name", menu_item_name);
-  const feedback = await menuRepository.fetchDetailedFeedback(menu_item_name);
-  console.log("nitin_feedback", feedback);
+  console.log(menu_item_name);
+  const feedback = await feedbackRepository.fetchDetailedFeedback(menu_item_name);
+  console.log(feedback);
   callback({ success: true, feedback });
 }
 

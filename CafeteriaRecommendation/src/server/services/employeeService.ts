@@ -1,6 +1,7 @@
 import { feedbackRepository } from '../repositories/feedbackRepository';
 import { menuRepository } from '../repositories/menuRepository';
 import { notificationRepository } from '../repositories/notificationRepository';
+import { recommendationRepository } from '../repositories/recommendationRepository';
 import { userRepository } from '../repositories/userRepository';
 import { FeedbackPayload } from '../utils/types';
 
@@ -32,7 +33,7 @@ export async function getRolloutItems(user: any, callback: Function) {
     const messages: string[] = [];
 
     for (const mealType of mealTypes) {
-      const rolledOutItems = await menuRepository.getRolledOutItems(mealType, user);
+      const rolledOutItems = await recommendationRepository.getRolledOutItems(mealType, user);
 
       if (rolledOutItems.length > 0) {
         const message = `Rolled out item for ${mealType} is: ${rolledOutItems.join(', ')}`;
@@ -76,7 +77,7 @@ export async function viewNotification(callback: Function) {
 
 export async function updateProfile(profileData:any,employeeId:number,  callback: Function) {
   try {
-    const profile = await menuRepository.updateProfile(profileData,employeeId);
+    const profile = await userRepository.updateProfile(profileData,employeeId);
     console.log('profile', profile);
     callback({ success: true, message : profile});
   } catch (err) {
@@ -96,7 +97,7 @@ export async function viewDiscardedItems(callback: Function) {
 }
 
 export async function saveDetailedFeedback(menuItem:any ,employeeId:any, question:any, feedback:any, callback: Function){
-  const data = await menuRepository.saveDetailedFeedback(menuItem,employeeId, question, feedback);
+  const data = await feedbackRepository.saveDetailedFeedback(menuItem,employeeId, question, feedback);
   callback(data);
 }
 

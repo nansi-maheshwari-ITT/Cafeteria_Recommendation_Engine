@@ -1,7 +1,6 @@
 import connection from "../utils/database";
 import { RowDataPacket } from "mysql2";
 
-// Define the User type based on the structure of your `users` table
 interface User extends RowDataPacket {
   id: number;
   employeeId: string;
@@ -14,7 +13,7 @@ class UserRepository {
     const [rows] = await connection.query<User[]>('SELECT * FROM user WHERE employeeId = ? AND name = ?', [employeeId, name]);
     return rows.length > 0 ? rows[0] : null;
   }
-  
+
   async logLogout(employee_id:any,logType: string ): Promise<void> {
     const date = new Date();
     try {
@@ -24,5 +23,26 @@ class UserRepository {
         throw new Error('Error logging login.');
     }
 }
+
+async updateProfile(profileData: any, empId: number): Promise<string> {
+  const { foodType, spiceLevel, cuisine, sweetTooth } = profileData;
+  const query = `
+    INSERT INTO employee_profile (
+      employee_id, food_type, spice_level, cuisine, sweet_tooth
+    ) VALUES (?, ?, ?, ?, ?)
+    ON DUPLICATE KEY UPDATE 
+      food_type = VALUES(food_type), 
+      spice_level = VALUES(spice_level), 
+      cuisine = VALUES(cuisine), 
+      sweet_tooth = VALUES(sweet_tooth)
+  `;
+  try {
+    await connection.query(query, [empId, foodType, spiceLevel, cuisine, sweetTooth]);
+    return "Your Profile has been updated successfully.";
+  } catch (error) {
+    throw new Error("Failed to update profile.");
+  }
+}
+
 }
 export const userRepository = new UserRepository();

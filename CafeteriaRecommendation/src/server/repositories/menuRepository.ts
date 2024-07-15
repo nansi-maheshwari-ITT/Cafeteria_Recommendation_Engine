@@ -95,39 +95,6 @@ class MenuRepository {
     }
   }
 
-  async viewMonthlyFeedback() {
-    try {
-      const [rows] = await connection.query(`
-        SELECT menu_item.name, AVG(feedback.rating) as average_rating, COUNT(feedback.id) as feedback_count
-        FROM feedback
-        JOIN menu_item ON feedback.menu_item_id = menu_item.id
-        WHERE feedback_date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)
-        GROUP BY menu_item.name
-      `);
-      return rows;
-    } catch (error) {
-      console.error("Error while fetching monthly feedback:", error);
-      throw new Error("Unable to fetch monthly feedback.");
-    }
-  }
-
-  async getFeedbackById(itemId: number) {
-    try {
-      const [rows] = await connection.query(
-        `
-        SELECT feedback.comment, feedback.rating, feedback.feedback_date
-        FROM feedback
-        WHERE feedback.menu_item_id = ?
-      `,
-        [itemId]
-      );
-      return rows;
-    } catch (error) {
-      console.error("Error while fetching feedback:", error);
-      throw new Error("Unable to fetch feedback.");
-    }
-  }
-
   async setNextDayMenu(itemIds: number[]) {
     try {
       await connection.query("UPDATE menu_item SET next_day_menu = FALSE");
@@ -167,72 +134,6 @@ class MenuRepository {
         throw new Error('Error inserting sentiments.');
     }
   }
-
-  async getRecommendations(): Promise<MenuItem[]> {
-    try {
-        const query = `
-        SELECT m.*, s.sentiment, s.average_rating, s.sentiment_score 
-        FROM menu_item m 
-        LEFT JOIN Sentiment s ON m.id = s.menu_item_id 
-        ORDER BY s.average_rating DESC 
-        LIMIT 10`;
-        const [menuItems] = await connection.query<MenuItem[]>(query);
-        return menuItems;
-    } catch (error) {
-        console.error(`Failed to insert sentiments: ${error}`);
-        throw new Error('Error inserting sentiments.');
-    }
-  }
-  
-
-  async getRecommendedItems(mealTime: string): Promise<string[]> {
-    const [recommendedItems] = await connection.query<RowDataPacket[]>(
-        `SELECT menu_item.name
-        FROM menu_item
-        JOIN Sentiment ON menu_item.id = Sentiment.menu_item_id
-        WHERE menu_item.mealType = ?
-        ORDER BY Sentiment.sentiment_score DESC, Sentiment.average_rating DESC
-        LIMIT 5`,
-        [mealTime]
-    );
-    console.log("recommendedItems:01", recommendedItems);
-  
-    return recommendedItems.map(item => item.name);
-  }
-  
-  async  rollOutMenuItems(mealType: string, items: string[]): Promise<string> {
-    const today = new Date().toISOString().split('T')[0];
-  
-    const [existingRollouts] = await connection.query<RowDataPacket[]>(
-      'SELECT * FROM Rolledout_Item WHERE date = ? AND mealType = ?',
-      [today, mealType]
-    );
-  
-    if (existingRollouts.length > 0) {
-      return `Today's menu for ${mealType} has already been set. Please update tomorrow.`;
-    }
-  
-    for (const item of items) {
-      const trimmedItem = item.trim();
-      const searchPattern = `%${trimmedItem}%`;
-  
-      const [menuEntry] = await connection.query<RowDataPacket[]>(
-        'SELECT id FROM menu_item WHERE name LIKE ? AND mealType = ?',
-        [searchPattern, mealType]
-      );
-  
-      if (menuEntry.length === 0) {
-        return `The item "${trimmedItem}" is not found in the ${mealType} menu.`;
-      }
-  
-      await connection.query(
-        'INSERT INTO Rolledout_Item (menu_item_id, mealType, date) VALUES (?, ?, ?)',
-        [menuEntry[0].id, mealType, today]
-      );
-    }
-  
-    return `The menu items for ${mealType} have been successfully rolled out.`;
-  }
   
   async  selectMenuItem(menuItemName: string, mealTime: string, username: string): Promise<string> {
     const formattedName = `%${menuItemName}%`;
@@ -264,39 +165,6 @@ class MenuRepository {
       [user.employeeId, menuItem.id, mealTime, date]
     );
     return `Menu item for ${mealTime} selected successfully.`;
-  }
-
-  async getRolledOutItems(mealType: string, user: any) {
-    try {
-      const today = new Date().toISOString().slice(0, 10);
-      const [userAttributes] = await connection.query<RowDataPacket[]>('SELECT food_type, spice_level, cuisine, sweet_tooth FROM employee_profile WHERE employee_id = ?', [user.employeeId]);
-
-      console.log("todcay:01", today);
-      const [rows] = await connection.query<RowDataPacket[]>(
-        `SELECT m.name
-            FROM Rolledout_Item ri
-            INNER JOIN Menu_Item m ON ri.menu_item_id = m.id
-            INNER JOIN Menu_Item_Attribute mia ON m.id = mia.menu_item_id
-            WHERE ri.date = ? AND ri.mealType= ?
-            ORDER BY (CASE WHEN mia.food_type = ? THEN 0 ELSE 1 END),
-            (CASE WHEN mia.spice_level = ? THEN 0 ELSE 1 END),
-            (CASE WHEN mia.cuisine = ? THEN 0 ELSE 1 END),
-            (CASE WHEN mia.sweet_tooth = ? THEN 0 ELSE 1 END) DESC`,
-        [
-          today,
-          mealType,
-          userAttributes[0].food_type,
-          userAttributes[0].spice_level,
-          userAttributes[0].cuisine,
-          userAttributes[0].sweet_tooth,
-        ]
-      );
-      console.log("rows:01", rows);
-      return rows.map((row) => row.name);
-    } catch (err) {
-      console.error("Error fetching rolled out items:", err);
-      throw err;
-    }
   }
 
   async  isItemValid(mealType: string, item: string): Promise<boolean> {
@@ -387,25 +255,6 @@ async saveSelectedMeal(meals: { breakfast: string, lunch: string, dinner: string
   return 'Meals for today have been successfully recorded.';
 }
 
-async updateProfile(profileData: any, empId: number): Promise<string> {
-  const { foodType, spiceLevel, cuisine, sweetTooth } = profileData;
-  const query = `
-    INSERT INTO employee_profile (
-      employee_id, food_type, spice_level, cuisine, sweet_tooth
-    ) VALUES (?, ?, ?, ?, ?)
-    ON DUPLICATE KEY UPDATE 
-      food_type = VALUES(food_type), 
-      spice_level = VALUES(spice_level), 
-      cuisine = VALUES(cuisine), 
-      sweet_tooth = VALUES(sweet_tooth)
-  `;
-  try {
-    await connection.query(query, [empId, foodType, spiceLevel, cuisine, sweetTooth]);
-    return "Your Profile has been updated successfully.";
-  } catch (error) {
-    throw new Error("Failed to update profile.");
-  }
-}
 
 async logMonthlyUsage(usageType: string): Promise<void> {
   try {
@@ -427,23 +276,6 @@ async fetchDiscardMenuItems(): Promise<DiscardMenuItem[]> {
   } catch (error) {
       console.error(`Failed to fetch discard menu items: ${error}`);
       throw new Error('Error fetching discard menu items.');
-  }
-}
-
-async fetchDetailedFeedback(menu_item_name: any): Promise<RowDataPacket[]> {
-  let name:any = "menu _item name not correct";
-  try{
-      const [menu_item_id] = await connection.query<RowDataPacket[]>('SELECT id as menu_item_id FROM menu_item WHERE name = ?', [menu_item_name]);
-      console.log("menu_item_id", menu_item_id.length);
-      // if(menu_item_id.length <= 0){
-      //   console.log("write correct menu item name");
-      //   return (name);
-      // }
-      const [rows] = await connection.query<RowDataPacket[]>('SELECT employeeId, question, response, response_date FROM Feedbacks_Response WHERE menu_item_id = ?', menu_item_id[0].menu_item_id);
-      return rows;
-  } catch (error) {
-      console.error(`Failed to get detailed feedback: ${error}`);
-      throw new Error('Error fetching detailed feedback.');
   }
 }
 
@@ -496,38 +328,6 @@ async deleteMenuItemByName(name: string, availability: boolean):Promise<string> 
     throw new Error('Error fetching discarded items for feedback.');
   }
 }
-
-async  saveDetailedFeedback(menuItem: string, employeeId: number, questions: string[], feedback: string[]): Promise<void> {
-  try {
-    // Fetch menu item ID based on the name
-    const [menuItemIdRows] = await connection.query<RowDataPacket[]>('SELECT id FROM menu_item WHERE name = ?', menuItem);
-    
-    if (menuItemIdRows.length === 0) {
-      console.error(`Menu item '${menuItem}' not found.`);
-      return;
-    }
-    
-    const menuItemId = menuItemIdRows[0].id;
-
-    const values: any[] = [];
-    questions.forEach((question, index) => {
-      values.push(menuItemId, employeeId, question, feedback[index]);
-    });
-
-    const query = `
-      INSERT INTO Feedbacks_Response (menu_item_id, employeeId, question, response) 
-      VALUES ${questions.map((_, index) => "(?, ?, ?, ?)").join(',')}
-    `;
-    
-    await connection.query(query, values);
-    
-    console.log(`Detailed feedback saved for '${menuItem}' successfully.`);
-  } catch (error) {
-    console.error(`Failed to save detailed feedback for '${menuItem}':`, error);
-    throw error; // Propagate the error for handling
-  }
-}
-
 }
 
 export const menuRepository = new MenuRepository();

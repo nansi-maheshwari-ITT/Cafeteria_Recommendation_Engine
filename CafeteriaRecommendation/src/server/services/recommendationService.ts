@@ -1,4 +1,4 @@
-import { recommendationDB } from "../repositories/recommendationRepository";
+import { recommendationRepository } from "../repositories/recommendationRepository";
 import {
   INTENSIFIERS,
   NEGATIVE_WORDS,
@@ -137,7 +137,7 @@ async function fetchRecentComments(): Promise<RatingComment[]> {
     "yyyy-MM-dd"
   );
   console.log("threeMonthsAgo", threeMonthsAgo);
-  return await recommendationDB.getRecentComments(threeMonthsAgo);
+  return await recommendationRepository.getRecentComments(threeMonthsAgo);
 }
 
 function groupCommentsByMenuItem(rows: RatingComment[]): {
@@ -158,20 +158,20 @@ async function storeSentimentAnalysis(
   averageRating: number,
   score: number
 ) {
-  const existingSentiment = await recommendationDB.getExistingSentiment(
+  const existingSentiment = await recommendationRepository.getExistingSentiment(
     menuItemId
   );
   console.log("existingSentiment", existingSentiment);
 
   if (existingSentiment.length > 0) {
-    await recommendationDB.updateSentiments(
+    await recommendationRepository.updateSentiments(
       menuItemId,
       sentiment,
       averageRating,
       score
     );
   } else {
-    await recommendationDB.insertSentiments(
+    await recommendationRepository.insertSentiments(
       menuItemId,
       sentiment,
       averageRating,
