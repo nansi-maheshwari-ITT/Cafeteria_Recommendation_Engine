@@ -56,7 +56,8 @@ class FeedbackRepository {
   async viewMonthlyFeedback() {
     try {
       const [rows] = await connection.query(`
-        SELECT menu_item.name, AVG(feedback.rating) as average_rating, COUNT(feedback.id) as feedback_count
+        SELECT menu_item.name, AVG(feedback.rating) as average_rating, COUNT(feedback.id) as feedback_count,
+        GROUP_CONCAT(feedback.comment SEPARATOR ', ') AS comments
         FROM feedback
         JOIN menu_item ON feedback.menu_item_id = menu_item.id
         WHERE feedback_date >= DATE_SUB(CURDATE(), INTERVAL 1 MONTH)

@@ -248,7 +248,7 @@ async saveSelectedMeal(meals: { breakfast: string, lunch: string, dinner: string
 
   await notificationRepository.addNotification(
     'employee', 
-    `Today's meals: Breakfast - ${meals.breakfast}, Lunch - ${meals.lunch}, Dinner - ${meals.dinner}.`,
+    `Tomorrow's meals: Breakfast - ${meals.breakfast}, Lunch - ${meals.lunch}, Dinner - ${meals.dinner}.`,
     1
   );
 
@@ -328,6 +328,16 @@ async deleteMenuItemByName(name: string, availability: boolean):Promise<string> 
     throw new Error('Error fetching discarded items for feedback.');
   }
 }
+
+async checkMenuItem(item: string): Promise<Array<string>> {
+  const trimmedItem = item.trim().toLowerCase();
+  const [rows] = await connection.query<RowDataPacket[]>(
+    'SELECT * FROM menu_item WHERE LOWER(TRIM(name)) = ?',
+    [trimmedItem]
+  );
+  return rows.map((row) => row.name);
+}
+
 }
 
 export const menuRepository = new MenuRepository();

@@ -75,7 +75,7 @@ async function viewFeedbackForItem() {
           if (response.success) {
             console.table(response.feedback);
           } else {
-            console.log("Failed to fetch or no feedback available.");
+            console.log(response.message)
           }
           promptUser("chef");
         });
@@ -210,7 +210,7 @@ async function finalizeMenuForTomorrow() {
         if (meals.breakfast && meals.breakfast.length > 0) {
           console.log("\x1b[36m=== Breakfast Options ===\x1b[0m");
           meals.breakfast.forEach((meal: any) => {
-            console.log(`Dish: ${meal.name}, Votes: ${meal.vote_count}`);
+            console.log(`Dish: ${meal.name}, Votes: ${meal.votes}`);
           });
         } else {
           console.log("\x1b[31mNo breakfast choices selected.\x1b[0m");
@@ -219,7 +219,7 @@ async function finalizeMenuForTomorrow() {
         if (meals.lunch && meals.lunch.length > 0) {
           console.log("\x1b[36m=== Lunch Options ===\x1b[0m");
           meals.lunch.forEach((meal: any) => {
-            console.log(`Dish: ${meal.name}, Votes: ${meal.vote_count}`);
+            console.log(`Dish: ${meal.name}, Votes: ${meal.votes}`);
           });
         } else {
           console.log("\x1b[31mNo lunch choices selected.\x1b[0m");
@@ -228,14 +228,29 @@ async function finalizeMenuForTomorrow() {
         if (meals.dinner && meals.dinner.length > 0) {
           console.log("\x1b[36m=== Dinner Options ===\x1b[0m");
           meals.dinner.forEach((meal: any) => {
-            console.log(`Dish: ${meal.name}, Votes: ${meal.vote_count}`);
+            console.log(`Dish: ${meal.name}, Votes: ${meal.votes}`);
           });
         } else {
           console.log("\x1b[31mNo dinner choices selected.\x1b[0m");
         }
 
         if (loggedInUser) {
-          selectMeal();
+          const anyMealsSelected = meals.breakfast.length > 0 || meals.lunch.length > 0 || meals.dinner.length > 0;
+
+          if (!anyMealsSelected) {
+            askQuestionAsync("No votes yet for the meal. Do you still want to finalize? (yes/no): ").then((answer) => {
+              if (answer.toLowerCase() === 'yes') {
+                selectMeal();
+              } else {
+                promptUser("chef");
+              }
+            }).catch((error) => {
+              console.error("Error processing user response:", error);
+              promptUser("chef");
+            });
+          } else {
+            selectMeal();
+          }
         } else {
           console.log("\x1b[31mUser is not logged in.\x1b[0m");
           promptUser("chef");
@@ -246,7 +261,8 @@ async function finalizeMenuForTomorrow() {
       }
     });
   } catch (error) {
-    console.error("\x1b[31mError finalizing tomorrow's menu:\x1b[0m", error);
+    console.error("Error finalizing menu for tomorrow:", error);
+    promptUser("chef");
   }
 }
 
@@ -314,7 +330,24 @@ async function removeFoodItem(itemName: string) {
 }
 
 async function rollOutFeedbackQuestionsForDiscard() {
-  const item = await askQuestion("Name the item for feedback: ");
+  let item: string | undefined;
+
+  while (!item) {
+    item = await askQuestion("Enter the item you want to ask feedback for: ");
+
+    if (!item) {
+      console.log("Item cannot be empty. Please enter a valid item.");
+      continue;
+    }
+
+    const isValidItem = await isMenuItemValid(item);
+    
+    if (!isValidItem) {
+      console.log(`Item '${item}' is invalid. Please enter a valid item.`);
+      item = undefined;
+    }
+  }
+
   socket.emit("checkMonthlyUsage", item, async (response: any) => {
     if (response.canUse) {
       await menuRepository.logMonthlyUsage(`getDetailedFeedback-${item}`);
@@ -335,9 +368,7 @@ async function rollOutFeedbackQuestionsForDiscard() {
         promptUser("chef");
       }, 200);
     } else {
-      console.log(
-        `Feedback for ${item} has already been requested this month. Try again later.`
-      );
+      console.log(`Feedback for ${item} has already been requested this month. Try again later.`);
       promptUser("chef");
     }
   });
@@ -356,9 +387,23 @@ function submitFeedbackQuestion(item: string, question: string) {
 }
 
 async function checkFeedbackForDiscardItems() {
-  const itemName = await askQuestionAsync(
-    "Enter the item name to retrieve feedback: "
-  );
+  let itemName: string | undefined;
+
+  while (!itemName) {
+    itemName = await askQuestionAsync("Enter the item name to retrieve feedback: ");
+
+    if (!itemName) {
+      console.log("Item name cannot be empty. Please enter a valid item name.");
+      continue;
+    }
+
+    const isValidItem = await isMenuItemValid(itemName);
+
+    if (!isValidItem) {
+      console.log(`Item '${itemName}' is invalid. Please enter a valid item name.`);
+      itemName = undefined;
+    }
+  }
 
   socket.emit("fetchDetailedFeedback", itemName, (response: any) => {
     if (response.feedback.length > 0) {
@@ -385,4 +430,10 @@ async function checkFeedbackForDiscardItems() {
     }
     promptUser("chef");
   });
+}
+
+export async function isMenuItemValid(item: string): Promise<boolean> {
+  const trimmedItem = item.trim().toLowerCase();
+  const menuItems = await menuRepository.checkMenuItem(trimmedItem); // Fetch all menu items from the database
+  return menuItems.map(menuItem => menuItem.trim().toLowerCase()).includes(trimmedItem);
 }

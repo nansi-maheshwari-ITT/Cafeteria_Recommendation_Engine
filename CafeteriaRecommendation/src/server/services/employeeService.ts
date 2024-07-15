@@ -28,13 +28,12 @@ export async function giveFeedback({ itemId, comment, rating }: FeedbackPayload,
 
 export async function getRolloutItems(user: any, callback: Function) {
   const mealTypes = ['breakfast', 'lunch', 'dinner'];
-  console.log("abc", user);
   try {
     const messages: string[] = [];
 
     for (const mealType of mealTypes) {
       const rolledOutItems = await recommendationRepository.getRolledOutItems(mealType, user);
-
+console.log(rolledOutItems)
       if (rolledOutItems.length > 0) {
         const message = `Rolled out item for ${mealType} is: ${rolledOutItems.join(', ')}`;
         messages.push(message);

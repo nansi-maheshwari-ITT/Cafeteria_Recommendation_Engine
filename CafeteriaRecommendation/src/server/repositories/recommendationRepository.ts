@@ -71,7 +71,7 @@ class RecommendationRepository {
     console.log(menuItemId, sentiment, averageRating, score);
     try {
       await connection.query(
-        "INSERT INTO Sentiment (menu_item_id, sentiment, average_rating, sentiment_score, positiveWords = ?, negativeWords = ?, neutralWords = ?, date_calculated) VALUES (?, ?, ?, ?, CURDATE())",
+        "INSERT INTO Sentiment (menu_item_id, sentiment, average_rating, sentiment_score, positiveWords, negativeWords, neutralWords) VALUES (?, ?, ?, ?, ?, ?, ?)",
         [
           menuItemId,
           sentiment,
@@ -87,10 +87,12 @@ class RecommendationRepository {
       throw new Error("Error inserting sentiments.");
     }
   }
-
+  
   async getRolledOutItems(mealType: string, user: any) {
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const formattedDate = tomorrow.toISOString().slice(0, 10);
       const [userAttributes] = await connection.query<RowDataPacket[]>(
         "SELECT food_type, spice_level, cuisine, sweet_tooth FROM employee_profile WHERE employee_id = ?",
         [user.employeeId]
@@ -110,7 +112,7 @@ class RecommendationRepository {
                     (CASE WHEN mia.cuisine = ? THEN 0 ELSE 1 END),
                     (CASE WHEN mia.sweet_tooth = ? THEN 0 ELSE 1 END) DESC`,
           [
-            today,
+            formattedDate,
             mealType,
             userAttributes[0].food_type,
             userAttributes[0].spice_level,
@@ -124,7 +126,7 @@ class RecommendationRepository {
            FROM Rolledout_Item ri
            INNER JOIN Menu_Item m ON ri.menu_item_id = m.id
            WHERE ri.date = ? AND ri.mealType = ?`,
-          [today, mealType]
+          [formattedDate, mealType]
         );
       }
   
@@ -159,7 +161,7 @@ class RecommendationRepository {
             FROM menu_item
             JOIN Sentiment ON menu_item.id = Sentiment.menu_item_id
             WHERE menu_item.mealType = ?
-            ORDER BY Sentiment.sentiment_score DESC, Sentiment.average_rating DESC
+            ORDER BY Sentiment.average_rating DESC,  Sentiment.sentiment_score DESC
             LIMIT 5`,
       [mealTime]
     );
@@ -169,11 +171,13 @@ class RecommendationRepository {
   }
 
   async rollOutMenuItems(mealType: string, items: string[]): Promise<string> {
-    const today = new Date().toISOString().split("T")[0];
+    const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const formattedDate = tomorrow.toISOString().slice(0, 10);
 
     const [existingRollouts] = await connection.query<RowDataPacket[]>(
       "SELECT * FROM Rolledout_Item WHERE date = ? AND mealType = ?",
-      [today, mealType]
+      [formattedDate, mealType]
     );
 
     if (existingRollouts.length > 0) {
@@ -195,7 +199,7 @@ class RecommendationRepository {
 
       await connection.query(
         "INSERT INTO Rolledout_Item (menu_item_id, mealType, date) VALUES (?, ?, ?)",
-        [menuEntry[0].id, mealType, today]
+        [menuEntry[0].id, mealType, formattedDate]
       );
     }
 

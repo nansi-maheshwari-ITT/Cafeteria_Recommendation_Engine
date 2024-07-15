@@ -30,7 +30,6 @@ export async function getRecommendation(callback: Function) {
     await updateSentimentScores();
     const menuItems = await recommendationRepository.getRecommendations();
     
-    // Add formatted sentiment comments
     const formattedMenuItems = menuItems.map(item => {
       const positiveComments = item.positiveWords ? `Positive: ${item.positiveWords}` : '';
       const negativeComments = item.negativeWords ? `Negative: ${item.negativeWords}` : '';
@@ -67,7 +66,12 @@ export async function viewMonthlyFeedback(callback: Function) {
 export async function getFeedbackById(itemId: number, callback: Function) {
   try {
     const feedback = await feedbackRepository.getFeedbackById(itemId);
-    callback({ success: true, feedback });
+    if(feedback){
+      callback({ success: false, message:"No feedbacks available for this item." });
+    }
+    else{
+      callback({ success: true, feedback });
+    }
   } catch (error) {
     console.error('Error fetching feedback by ID:', error);
     callback({ success: false, message: 'Unable to retrieve feedback for the specified item.' });
@@ -141,10 +145,10 @@ export async function finalizeMenuForTomorrow(callback: Function) {
     const selectedFoods = await menuRepository.fetchMenuItemsForMeal(formattedDate, mealType);
     mealSchedule[mealType] = selectedFoods.map((food: any) => ({
       name: food.name,
-      votes: food.vote_count
+      votes: food.votes
     }));
   }
-
+  console.log(mealSchedule)
   callback({ success: true, meals: mealSchedule });
 }
 
@@ -178,15 +182,16 @@ export async function viewDiscardList(callback: Function) {
 } 
 
 export async function fetchDetailedFeedback(menu_item_name: any, callback: Function) {
-  console.log(menu_item_name);
   const feedback = await feedbackRepository.fetchDetailedFeedback(menu_item_name);
-  console.log(feedback);
   callback({ success: true, feedback });
 }
 
 export async function checkMonthlyUsage(discardedItem: any, callback: Function) {
+  const itemExists=await menuRepository.findMenuItemByName(discardedItem)
+ if(itemExists){
   const canUse = await menuRepository.canUseFeature(`getDetailedFeedback-${discardedItem}`);
   callback({canUse});
+ }
 }
 
 

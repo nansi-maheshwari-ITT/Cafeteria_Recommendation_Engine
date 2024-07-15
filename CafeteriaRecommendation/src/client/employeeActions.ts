@@ -1,6 +1,7 @@
 import { socket, loggedInUser } from "./client";
 import { promptUser, rl, askQuestion, askQuestionAsync } from "../server/utils/promptUtils";
 import { MenuItem } from "../server/utils/types";
+import { resolve } from "path";
 
 export function handleEmployeeChoice(choice: string) {
   switch (choice) {
@@ -90,6 +91,7 @@ function giveFeedback(): void {
                 },
                 (response: any) => {
                   console.log(response.message);
+                  console.log("Successfully added")
                   promptUser("employee");
                 }
               );
@@ -112,6 +114,7 @@ function voteForTomorrowMenu(): void {
     socket.emit("getRolloutItems", loggedInUser, (response: any) => {
       if (loggedInUser) {
         if (response.status !== 'empty') {
+          console.log(response.message)
           gatherVotesForMenu(loggedInUser.name);
         } else {
           console.log("No items available for voting.");
@@ -232,15 +235,16 @@ async function viewDiscardedItems() {
             promptUser("employee");
             return;
           }
+          const isValidItem = response.discardedItems.some((item: any) => item && item.trim().toLowerCase() == selectedItem.trim().toLowerCase());
 
-          if (!response.discardedItems.some((item: any) => item.item_name === selectedItem)) {
+          if (!isValidItem) {
             console.log(`Item '${selectedItem}' is not in the discarded list. Please select a valid item.`);
             continue;
           }
 
           const question1 = `What did you dislike about ${selectedItem}?`;
           const question2 = `How can we improve the taste of ${selectedItem}?`;
-          const question3 = `Can you share a recipe for ${selectedItem}`;
+          const question3 = `Can you share a recipe for ${selectedItem}?`;
 
           const inputQ1 = await askQuestion(`Q1: ${question1}: `);
           const inputQ2 = await askQuestion(`Q2: ${question2}: `);
@@ -250,7 +254,6 @@ async function viewDiscardedItems() {
             [question1, question2, question3],
             [inputQ1, inputQ2, inputQ3],
             (response: any) => {
-              console.log(response.message);
             }
           );
 
@@ -269,6 +272,7 @@ async function viewDiscardedItems() {
     promptUser("employee");
   }
 }
+
 
 async function logLogout() {
   try {
