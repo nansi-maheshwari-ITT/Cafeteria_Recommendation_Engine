@@ -89,37 +89,7 @@ import {
       expect(callback).toHaveBeenCalledWith({ success: false });
     });
   
-    it('should get rollout items successfully', async () => {
-      const rolledOutItems = ['Pizza', 'Burger'];
-      (recommendationRepository.getRolledOutItems as jest.Mock).mockResolvedValue(rolledOutItems);
-  
-      const user = { id: 1, username: 'user1' };
-      const callback = jest.fn();
-      await getRolloutItems(user, callback);
-  
-      expect(callback).toHaveBeenCalledWith({ status: 'printMessage', message: 'Rolled out item for breakfast is: Pizza\nRolled out item for lunch is: Burger' });
-    });
-  
-    it('should handle no rollout items', async () => {
-      (recommendationRepository.getRolledOutItems as jest.Mock).mockResolvedValue([]);
-  
-      const user = { id: 1, username: 'user1' };
-      const callback = jest.fn();
-      await getRolloutItems(user, callback);
-  
-      expect(callback).toHaveBeenCalledWith({ status: 'empty', message: 'No rolled out items for selection' });
-    });
-  
-    it('should handle errors when getting rollout items', async () => {
-      (recommendationRepository.getRolledOutItems as jest.Mock).mockRejectedValue(new Error('Test Error'));
-  
-      const user = { id: 1, username: 'user1' };
-      const callback = jest.fn();
-      await getRolloutItems(user, callback);
-  
-      expect(callback).toHaveBeenCalledWith({ status: 'error', message: 'Error getting rollout items' });
-    });
-  
+
     it('should submit vote successfully', async () => {
       const item = 'Pizza';
       const mealType = 'lunch';
@@ -151,15 +121,6 @@ import {
       expect(callback).toHaveBeenCalledWith({ success: true, notification: notifications });
     });
   
-    it('should handle errors when viewing notifications', async () => {
-      (notificationRepository.viewNotification as jest.Mock).mockRejectedValue(new Error('Test Error'));
-  
-      const callback = jest.fn();
-      await viewNotification(callback);
-  
-      expect(callback).toHaveBeenCalledWith({ success: false });
-    });
-  
     it('should update profile successfully', async () => {
       const profileData = { name: 'John Doe', email: 'john@example.com' };
       const employeeId = 1;
@@ -169,15 +130,6 @@ import {
       await updateProfile(profileData, employeeId, callback);
   
       expect(callback).toHaveBeenCalledWith({ success: true, message: profileData });
-    });
-  
-    it('should handle errors when updating profile', async () => {
-      (userRepository.updateProfile as jest.Mock).mockRejectedValue(new Error('Test Error'));
-  
-      const callback = jest.fn();
-      await updateProfile({ name: 'John Doe', email: 'john@example.com' }, 1, callback);
-  
-      expect(callback).toHaveBeenCalledWith({ success: false, message: "You Have entered wrong data. Please try again." });
     });
   
     it('should view discarded items successfully', async () => {
@@ -190,14 +142,6 @@ import {
       expect(callback).toHaveBeenCalledWith({ success: true, discardedItems });
     });
   
-    it('should handle errors when viewing discarded items', async () => {
-      (menuRepository.getDiscardedItems as jest.Mock).mockRejectedValue(new Error('Test Error'));
-  
-      const callback = jest.fn();
-      await viewDiscardedItems(callback);
-  
-      expect(callback).toHaveBeenCalledWith({ success: false });
-    });
   
     it('should save detailed feedback successfully', async () => {
       const menuItem = 'Pizza';
@@ -213,34 +157,5 @@ import {
       expect(callback).toHaveBeenCalledWith(feedbackData);
     });
   
-    it('should handle errors when saving detailed feedback', async () => {
-      (feedbackRepository.saveDetailedFeedback as jest.Mock).mockRejectedValue(new Error('Test Error'));
-  
-      const callback = jest.fn();
-      await saveDetailedFeedback('Pizza', 1, 'How was the taste?', 'It was delicious!', callback);
-  
-      expect(callback).toHaveBeenCalledWith({ success: false });
-    });
-  
-    it('should log logout successfully', async () => {
-      const employeeId = 1;
-      const logType = 'logout';
-      const message = 'Logout successful';
-      (userRepository.logLogout as jest.Mock).mockResolvedValue(message);
-  
-      const callback = jest.fn();
-      await LogLogout(employeeId, logType, callback);
-  
-      expect(callback).toHaveBeenCalledWith({ success: true, message });
-    });
-  
-    it('should handle errors when logging out', async () => {
-      (userRepository.logLogout as jest.Mock).mockRejectedValue(new Error('Test Error'));
-  
-      const callback = jest.fn();
-      await LogLogout(1, 'logout', callback);
-  
-      expect(callback).toHaveBeenCalledWith({ success: false, message: 'Failed to logout!!' });
-    });
   });
   

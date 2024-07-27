@@ -113,7 +113,7 @@ async function addMenuItem() {
 
     socket.emit("addMenuItem", menuItem, profileData, (response: any) => {
       console.log(response);
-      if (response.success === true) {
+      if (response.success === true && response.id) {
         console.log("Item added successfully.");
       } else {
         console.log("Error adding item. Please try again.");
